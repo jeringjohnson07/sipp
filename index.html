@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIPp Architect — Ribbon SBC Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════
+   TERMINAL PRO — Design Tokens
+   Palette: deep navy base, cool slate surfaces,
+   electric blue primary, crisp white type.
+   Inspired by VS Code + JetBrains IDE chrome.
+════════════════════════════════════════════ */
+:root {
+  --bg:         #0e1117;
+  --titlebar:   #090d13;
+  --sidebar:    #111827;
+  --surface:    #161d2e;
+  --surface2:   #1c2539;
+  --surface3:   #202b3f;
+  --border:     #1f2d45;
+  --border2:    #263650;
+  --border3:    #2e4268;
+
+  --text:       #e2eaf8;
+  --text2:      #8ba3c7;
+  --muted:      #4d6690;
+  --dim:        #2a3d5e;
+
+  --blue:       #3b82f6;
+  --blue-dim:   rgba(59,130,246,0.12);
+  --blue-glow:  rgba(59,130,246,0.25);
+  --green:      #22c55e;
+  --green-dim:  rgba(34,197,94,0.12);
+  --amber:      #f59e0b;
+  --red:        #ef4444;
+  --purple:     #a78bfa;
+  --sky:        #38bdf8;
+  --pink:       #f472b6;
+  --orange:     #f97316;
+  --indigo:     #818cf8;
+
+  --radius:     6px;
+  --radius-lg:  10px;
+  --mono:       'JetBrains Mono', monospace;
+  --sans:       'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TITLEBAR ── */
+.titlebar {
+  height: 48px;
+  background: var(--titlebar);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.tb-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.tb-icon {
+  width: 28px; height: 28px;
+  background: var(--blue);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  color: #fff;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}
+
+.tb-name {
+  font-size: 13px; font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.tb-name span { color: var(--blue); }
+.tb-version {
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  background: var(--blue-dim);
+  color: var(--blue);
+  border: 1px solid var(--blue-glow);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tb-sep { flex: 1; }
+
+.tb-status {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 9px; color: var(--muted);
+}
+.tb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+.tb-actions { display: flex; gap: 6px; }
+
+.tbtn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  transition: all 0.15s;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+.tbtn:hover { border-color: var(--border3); color: var(--text); background: var(--surface3); }
+.tbtn.uac  { border-color: rgba(59,130,246,0.4); color: var(--blue); }
+.tbtn.uac:hover { background: var(--blue-dim); }
+.tbtn.uas  { border-color: rgba(34,197,94,0.4); color: var(--green); }
+.tbtn.uas:hover { background: var(--green-dim); }
+.tbtn.zip  { border-color: rgba(167,139,250,0.4); color: var(--purple); }
+.tbtn.zip:hover { background: rgba(167,139,250,0.08); }
+
+/* ── WARN STRIP ── */
+.warn-strip {
+  background: rgba(245,158,11,0.07);
+  border-bottom: 1px solid rgba(245,158,11,0.18);
+  padding: 7px 16px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--amber);
+  display: none;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+
+/* ── MAIN LAYOUT ── */
+.workspace {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ════════════════════════════════════════════
+   LEFT PANEL — Tabbed Sidebar
+════════════════════════════════════════════ */
+.sidebar {
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tab nav row */
+.tab-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  flex: 1;
+  padding: 9px 4px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text2); }
+.tab-btn.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+  background: rgba(59,130,246,0.05);
+}
+
+/* Tab content panels */
+.tab-panels { flex: 1; overflow: hidden; position: relative; }
+.tab-panel {
+  position: absolute; inset: 0;
+  overflow-y: auto;
+  padding: 12px;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.tab-panel.active { display: flex; }
+
+/* Section headers inside panels */
+.sec-hdr {
+  font-family: var(--mono);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+/* ── PRESET BUTTONS ── */
+.preset-btn {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s;
+  display: flex; align-items: center; gap: 7px;
+}
+.preset-btn:hover { border-color: var(--blue); color: var(--text); background: var(--blue-dim); }
+.preset-icon {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; flex-shrink: 0;
+}
+
+/* ── COMPONENT BUTTONS ── */
+.comp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.comp-btn {
+  padding: 7px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 2px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s;
+  line-height: 1.2;
+}
+.comp-btn:hover { background: var(--surface2); border-left-color: currentColor; filter: brightness(1.2); }
+
+.c-register { color: var(--pink);   border-left-color: var(--pink); }
+.c-invite   { color: var(--blue);   border-left-color: var(--blue); }
+.c-100      { color: var(--muted);  }
+.c-180      { color: var(--sky);    border-left-color: var(--sky); }
+.c-183      { color: var(--amber);  border-left-color: var(--amber); }
+.c-prack    { color: var(--purple); border-left-color: var(--purple); }
+.c-200      { color: var(--green);  border-left-color: var(--green); }
+.c-bye      { color: var(--red);    border-left-color: var(--red); }
+.c-cancel   { color: var(--orange); border-left-color: var(--orange); }
+.c-302      { color: var(--orange); border-left-color: var(--orange); }
+.c-media    { color: var(--indigo); border-left-color: var(--indigo); }
+.c-pause    { color: var(--muted);  }
+
+.reset-btn {
+  width: 100%;
+  padding: 7px;
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius);
+  color: var(--red);
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  cursor: pointer;
+  transition: 0.12s;
+  margin-top: 4px;
+}
+.reset-btn:hover { background: rgba(239,68,68,0.12); }
+
+/* ── FORM FIELDS ── */
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label {
+  font-family: var(--mono);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field input[type=text],
+.field select,
+.field textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input[type=text]:focus,
+.field select:focus,
+.field textarea:focus { border-color: var(--blue); }
+.field textarea { height: 56px; resize: none; }
+.field select option { background: var(--surface2); }
+.field input[type=range] { width: 100%; accent-color: var(--blue); }
+.range-val {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--blue); text-align: right;
+}
+
+/* ── TRANSPORT PILL ── */
+.transport-row {
+  display: flex; gap: 5px;
+}
+.transport-opt {
+  flex: 1; padding: 6px 4px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.12s;
+}
+.transport-opt.active-udp { border-color: var(--blue);   color: var(--blue);   background: var(--blue-dim); }
+.transport-opt.active-tcp { border-color: var(--green);  color: var(--green);  background: var(--green-dim); }
+.transport-opt.active-tls { border-color: var(--purple); color: var(--purple); background: rgba(167,139,250,0.1); }
+
+/* ── CODEC CHECKBOXES ── */
+.codec-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: 0.12s;
+}
+.codec-item:hover { border-color: var(--border2); }
+.codec-item input[type=checkbox] {
+  width: 13px; height: 13px;
+  accent-color: var(--blue);
+  cursor: pointer; flex-shrink: 0;
+}
+.codec-item label {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--text2); cursor: pointer; flex: 1;
+}
+.codec-pt {
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  color: var(--dim);
+  background: var(--surface2);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* ════════════════════════════════════════════
+   RIGHT AREA — Flow + XML
+════════════════════════════════════════════ */
+.right-area {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ── FLOW PANEL ── */
+.flow-panel {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.flow-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.flow-title {
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.step-count {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--muted);
+  background: var(--surface2);
+  padding: 2px 6px; border-radius: 10px;
+}
+
+.flow-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%;
+  gap: 8px;
+  opacity: 0.4;
+}
+.empty-icon { font-size: 28px; }
+.empty-text { font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: center; line-height: 1.6; }
+
+/* Step cards */
+.step-card {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-left: 2px solid transparent;
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  display: flex; align-items: center; gap: 6px;
+  cursor: grab;
+  transition: all 0.12s;
+  animation: cardIn 0.15s ease;
+}
+.step-card:hover { border-color: var(--border3); background: var(--surface3); }
+@keyframes cardIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+
+.step-num {
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  color: var(--dim); min-width: 14px;
+}
+.step-badge {
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px;
+  white-space: nowrap;
+}
+.step-meta { flex: 1; font-family: var(--mono); font-size: 8px; color: var(--muted); }
+.step-actions { display: flex; gap: 3px; align-items: center; }
+
+.sdp-pill {
+  font-family: var(--mono); font-size: 7px; font-weight: 700;
+  padding: 2px 5px; border-radius: 3px; border: none;
+  cursor: pointer; transition: 0.12s;
+}
+.sdp-on  { background: rgba(59,130,246,0.15); color: var(--blue); }
+.sdp-off { background: var(--surface3); color: var(--dim); }
+
+.del-btn {
+  background: transparent; border: none;
+  color: var(--dim); cursor: pointer;
+  font-size: 10px; padding: 2px 4px;
+  border-radius: 3px; transition: 0.12s;
+  line-height: 1;
+}
+.del-btn:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+
+.step-arrow { text-align: center; color: var(--dim); font-size: 10px; margin: 0; line-height: 1.4; }
+
+/* ── XML OUTPUT AREA ── */
+.xml-area {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.xml-tabbar {
+  background: var(--titlebar);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.xml-tab {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: 0.15s;
+  min-width: 0;
+}
+.xml-tab.active-uac { border-bottom-color: var(--blue); background: rgba(59,130,246,0.04); }
+.xml-tab.active-uas { border-bottom-color: var(--green); background: rgba(34,197,94,0.04); }
+
+.xml-tab-label {
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 10px 0;
+}
+.xml-tab.active-uac .xml-tab-label { color: var(--blue); }
+.xml-tab.active-uas .xml-tab-label { color: var(--green); }
+.xml-tab:not(.active-uac):not(.active-uas) .xml-tab-label { color: var(--muted); }
+
+.xml-tab-badge {
+  font-family: var(--mono); font-size: 7px; font-weight: 700;
+  padding: 1px 5px; border-radius: 3px;
+}
+
+.xml-split { flex: 1; }
+
+.xml-pane-wrap {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+}
+
+.xml-pane-col {
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+}
+.xml-pane-col:last-child { border-right: none; }
+
+.xml-pane-hdr {
+  background: var(--titlebar);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.xml-pane-name {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.xml-pane-badge {
+  font-family: var(--mono); font-size: 7px; font-weight: 700;
+  padding: 1px 5px; border-radius: 3px;
+}
+.badge-udp { background: var(--blue-dim);              color: var(--blue); }
+.badge-tcp { background: var(--green-dim);             color: var(--green); }
+.badge-tls { background: rgba(167,139,250,0.12);       color: var(--purple); }
+
+/* ── COPY BUTTON ── */
+.copy-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 9px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.copy-btn:hover { border-color: var(--border3); color: var(--text); background: var(--surface3); }
+.copy-btn.copied {
+  border-color: rgba(34,197,94,0.5);
+  color: var(--green);
+  background: rgba(34,197,94,0.08);
+}
+.copy-icon { font-size: 11px; line-height: 1; }
+
+.xml-line-nums {
+  background: var(--titlebar);
+  border-right: 1px solid var(--border);
+  padding: 14px 6px 14px 4px;
+  font-family: var(--mono); font-size: 10px; line-height: 1.6;
+  color: var(--dim); text-align: right;
+  overflow: hidden; user-select: none; flex-shrink: 0;
+  white-space: pre;
+  width: 38px;
+  min-width: 0;
+}
+
+.xml-content-wrap {
+  display: flex; flex: 1; overflow: hidden; min-height: 0; min-width: 0;
+}
+
+.xml-pane {
+  flex: 1;
+  background: #080d16;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.6;
+  overflow: auto;
+  padding: 14px 14px 14px 4px;
+  white-space: pre;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+  min-height: 0;
+}
+
+/* ── XML SYNTAX COLORS ── */
+.x-tag   { color: #4a9eff; }
+.x-attr  { color: var(--purple); }
+.x-val   { color: var(--green); }
+.x-sip   { color: var(--pink); font-weight: 700; }
+.x-hdr   { color: #fcd34d; }
+.x-com   { color: #2a3d5e; font-style: italic; }
+.x-resp  { color: var(--green); }
+.x-cdata { color: #c9d8f0; }
+.x-sdp   { color: var(--sky); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── LINE NUMBERS SYNC ── */
+.xml-content-wrap { position: relative; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ TITLEBAR ═══════════════════ -->
+<div class="titlebar">
+  <div class="tb-logo">
+    <div class="tb-icon">SA</div>
+    <span class="tb-name">SIPp <span>Architect</span></span>
+    <span class="tb-version">v3.0</span>
+  </div>
+
+  <div class="tb-sep"></div>
+
+  <div class="tb-status">
+    <div class="tb-dot"></div>
+    <span id="statusText">Ready · 0 steps</span>
+  </div>
+
+  <div class="tb-actions">
+    <button class="tbtn uac" onclick="downloadFile('uac')">↓ UAC XML</button>
+    <button class="tbtn uas" onclick="downloadFile('uas')">↓ UAS XML</button>
+    <button class="tbtn zip" onclick="downloadZip()">↓ Both</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ WARN STRIP ═══════════════════ -->
+<div id="warnBanner" class="warn-strip"></div>
+
+<!-- ═══════════════════ WORKSPACE ═══════════════════ -->
+<div class="workspace">
+
+  <!-- ─── SIDEBAR ─── -->
+  <div class="sidebar">
+
+    <!-- Tab nav -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('presets',this)">Presets</button>
+      <button class="tab-btn" onclick="switchTab('components',this)">Add Step</button>
+      <button class="tab-btn" onclick="switchTab('config',this)">Config</button>
+      <button class="tab-btn" onclick="switchTab('codecs',this)">SDP</button>
+      <button class="tab-btn" onclick="switchTab('teams',this)">Teams</button>
+    </div>
+
+    <!-- ─── TAB: PRESETS ─── -->
+    <div class="tab-panels">
+      <div class="tab-panel active" id="tab-presets">
+        <div class="sec-hdr">Quick Start Presets</div>
+
+        <button class="preset-btn" onclick="loadPreset('basic')">
+          <div class="preset-icon" style="background:rgba(59,130,246,0.15);color:var(--blue)">▶</div>
+          <div><div style="color:var(--text);font-weight:600">Basic Call</div><div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 100 · 180 · 200 · BYE</div></div>
+        </button>
+
+        <button class="preset-btn" onclick="loadPreset('early')">
+          <div class="preset-icon" style="background:rgba(245,158,11,0.15);color:var(--amber)">▶</div>
+          <div><div style="color:var(--text);font-weight:600">Early Media</div><div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 183 · PRACK · 200 · BYE</div></div>
+        </button>
+
+        <button class="preset-btn" onclick="loadPreset('teams')">
+          <div class="preset-icon" style="background:rgba(167,139,250,0.15);color:var(--purple)">▶</div>
+          <div><div style="color:var(--text);font-weight:600">Teams Direct Routing</div><div style="color:var(--muted);font-size:8px;margin-top:2px">TLS · PAI · 183 · PRACK · BYE</div></div>
+        </button>
+
+        <button class="preset-btn" onclick="loadPreset('register')">
+          <div class="preset-icon" style="background:rgba(244,114,182,0.15);color:var(--pink)">▶</div>
+          <div><div style="color:var(--text);font-weight:600">REGISTER + Auth</div><div style="color:var(--muted);font-size:8px;margin-top:2px">REGISTER · 401 challenge · 200</div></div>
+        </button>
+
+        <button class="preset-btn" onclick="loadPreset('redirect')">
+          <div class="preset-icon" style="background:rgba(249,115,22,0.15);color:var(--orange)">▶</div>
+          <div><div style="color:var(--text);font-weight:600">302 Redirect</div><div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 100 · 302</div></div>
+        </button>
+
+        <div style="flex:1"></div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
+          Presets load a complete flow.<br>Use "Add Step" to customise.
+        </div>
+      </div>
+
+      <!-- ─── TAB: COMPONENTS ─── -->
+      <div class="tab-panel" id="tab-components">
+        <div class="sec-hdr">Add Component</div>
+        <div class="comp-grid">
+          <button class="comp-btn c-register" onclick="addStep('REGISTER')">REGISTER<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ Digest Auth</span></button>
+          <button class="comp-btn c-invite"   onclick="addStep('INVITE')">INVITE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">SDP optional</span></button>
+          <button class="comp-btn c-100"      onclick="addStep('100')">100 TRYING<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Provisional</span></button>
+          <button class="comp-btn c-180"      onclick="addStep('180')">180 RINGING<br><span style="font-size:7px;font-weight:400;color:var(--muted)">SDP optional</span></button>
+          <button class="comp-btn c-183"      onclick="addStep('183')">183 PROGRESS<br><span style="font-size:7px;font-weight:400;color:var(--muted)">100rel + SDP</span></button>
+          <button class="comp-btn c-prack"    onclick="addStep('PRACK')">PRACK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">→ [next_url]</span></button>
+          <button class="comp-btn c-200"      onclick="addStep('200')">200 OK + ACK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ fresh Via</span></button>
+          <button class="comp-btn c-bye"      onclick="addStep('BYE')">BYE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ duration pause</span></button>
+          <button class="comp-btn c-cancel"   onclick="addStep('CANCEL')">CANCEL<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ 487 ACK</span></button>
+          <button class="comp-btn c-302"      onclick="addStep('302')">302 REDIRECT<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Moved Temp</span></button>
+          <button class="comp-btn c-media"    onclick="addStep('MEDIA')">PLAY PCAP<br><span style="font-size:7px;font-weight:400;color:var(--muted)">media.pcap</span></button>
+          <button class="comp-btn c-pause"    onclick="addStep('PAUSE')">PAUSE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">2000ms</span></button>
+        </div>
+        <div style="flex:1"></div>
+        <button class="reset-btn" onclick="clearAll()">↺ Reset Workspace</button>
+      </div>
+
+      <!-- ─── TAB: CONFIG ─── -->
+      <div class="tab-panel" id="tab-config">
+        <div class="sec-hdr">Transport Protocol</div>
+        <div class="transport-row">
+          <div class="transport-opt active-udp" id="topt-UDP" onclick="setTransport('UDP')">UDP</div>
+          <div class="transport-opt" id="topt-TCP" onclick="setTransport('TCP')">TCP</div>
+          <div class="transport-opt" id="topt-TLS" onclick="setTransport('TLS')">TLS</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-top:8px">Call Duration Before BYE</div>
+        <div class="field">
+          <input type="range" id="callDuration" min="1000" max="60000" step="1000" value="5000" oninput="updateDurLabel();updateUI()">
+          <div class="range-val" id="durLabel">5000 ms</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-top:4px">Redirect URI (302)</div>
+        <div class="field">
+          <input type="text" id="redirectUri" value="sip:forward@dest.com:5060" oninput="updateUI()">
+        </div>
+
+        <div class="sec-hdr" style="margin-top:4px">Global Header Injection</div>
+        <div class="field">
+          <textarea id="customHeaders" oninput="updateUI()" placeholder="X-Custom-Header: value&#10;P-Charge-Info: sip:1234@domain"></textarea>
+        </div>
+
+        <div class="sec-hdr" style="margin-top:4px">Pause Duration (PAUSE step)</div>
+        <div class="field">
+          <input type="text" id="pauseDuration" value="2000" oninput="updateUI()" placeholder="milliseconds">
+        </div>
+      </div>
+
+      <!-- ─── TAB: SDP / CODECS ─── -->
+      <div class="tab-panel" id="tab-codecs">
+        <div class="sec-hdr">Audio Codecs · Checked = Included</div>
+        <div id="codecList" style="display:flex;flex-direction:column;gap:5px"></div>
+
+        <div class="sec-hdr" style="margin-top:8px">SDP Direction</div>
+        <div class="field">
+          <select id="sdpDirection" onchange="updateUI()">
+            <option value="sendrecv">sendrecv (default)</option>
+            <option value="sendonly">sendonly</option>
+            <option value="recvonly">recvonly</option>
+            <option value="inactive">inactive</option>
+          </select>
+        </div>
+
+        <div class="sec-hdr" style="margin-top:4px">Custom SDP Lines</div>
+        <div class="field">
+          <textarea id="customSdp" oninput="updateUI()" placeholder="a=ptime:20&#10;a=maxptime:150"></textarea>
+        </div>
+
+        <div style="flex:1"></div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
+          Codec order = m= line priority.<br>
+          SDP applied to steps with SDP:ON.
+        </div>
+      </div>
+
+      <!-- ─── TAB: TEAMS ─── -->
+      <div class="tab-panel" id="tab-teams">
+        <div class="sec-hdr">Teams Direct Routing</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--amber);background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:var(--radius);padding:7px 9px;line-height:1.6;margin-bottom:6px">
+          ⚠ Set Transport → TLS in Config tab to activate Teams mode headers in output.
+        </div>
+
+        <div class="field">
+          <div class="field-label">P-Asserted-Identity</div>
+          <input type="text" id="pai" value="sip:+11234567890@tenant.onmicrosoft.com" oninput="updateUI()">
+        </div>
+
+        <div class="field">
+          <div class="field-label">P-Called-Party-ID</div>
+          <input type="text" id="pcpid" value="sip:+10987654321@tenant.onmicrosoft.com" oninput="updateUI()">
+        </div>
+
+        <div class="field">
+          <div class="field-label">History-Info</div>
+          <input type="text" id="historyInfo" value="" placeholder="sip:+10987654321@sbc.domain;index=1" oninput="updateUI()">
+        </div>
+
+        <div class="field">
+          <div class="field-label">SBC FQDN (TLS Contact)</div>
+          <input type="text" id="sbcFqdn" value="sbc.contoso.com" oninput="updateUI()">
+        </div>
+
+        <div style="flex:1"></div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
+          PAI / P-Called-Party-ID inserted<br>into INVITE when TLS transport set.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── RIGHT AREA ─── -->
+  <div class="right-area">
+
+    <!-- Flow canvas -->
+    <div class="flow-panel">
+      <div class="flow-header">
+        <span class="flow-title">Scenario Flow</span>
+        <span class="step-count" id="stepCount">0 steps</span>
+      </div>
+      <div class="flow-canvas" id="canvas">
+        <div class="empty-state">
+          <div class="empty-icon">⬡</div>
+          <div class="empty-text">No steps yet.<br>Choose a Preset or<br>add steps manually.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- XML output -->
+    <div class="xml-area">
+      <div class="xml-pane-wrap">
+
+        <!-- UAC pane -->
+        <div class="xml-pane-col">
+          <div class="xml-pane-hdr">
+            <span class="xml-pane-name" style="color:var(--blue)">UAC_SCENARIO.XML</span>
+            <span class="xml-pane-badge badge-udp" id="uac-badge">UDP</span>
+            <div style="flex:1"></div>
+            <button class="copy-btn" id="copy-uac" onclick="copyToClipboard('uac')">
+              <span class="copy-icon">⎘</span> Copy
+            </button>
+          </div>
+          <div class="xml-content-wrap">
+            <div class="xml-line-nums" id="uac-lines">1</div>
+            <div class="xml-pane" id="uac-out" onscroll="syncScroll('uac')"></div>
+          </div>
+        </div>
+
+        <!-- UAS pane -->
+        <div class="xml-pane-col">
+          <div class="xml-pane-hdr">
+            <span class="xml-pane-name" style="color:var(--green)">UAS_SCENARIO.XML</span>
+            <span class="xml-pane-badge badge-udp" id="uas-badge">UDP</span>
+            <div style="flex:1"></div>
+            <button class="copy-btn" id="copy-uas" onclick="copyToClipboard('uas')">
+              <span class="copy-icon">⎘</span> Copy
+            </button>
+          </div>
+          <div class="xml-content-wrap">
+            <div class="xml-line-nums" id="uas-lines">1</div>
+            <div class="xml-pane" id="uas-out" onscroll="syncScroll('uas')"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let steps   = [];
+let dragSrc = null;
+let transport = 'UDP';
+
+const COLORS = {
+  REGISTER:'#f472b6', INVITE:'#3b82f6', '100':'#4d6690',
+  '180':'#38bdf8',    '183':'#f59e0b',  PRACK:'#a78bfa',
+  '200':'#22c55e',    BYE:'#ef4444',    CANCEL:'#f97316',
+  '302':'#f97316',    MEDIA:'#818cf8',  PAUSE:'#4d6690'
+};
+
+// ═══════════════════════════════════════════
+//  SDP / CODEC ENGINE
+// ═══════════════════════════════════════════
+const CODEC_DEFS = {
+  'PCMA/8000':       { pt:8,   name:'PCMA',            rate:8000  },
+  'PCMU/8000':       { pt:0,   name:'PCMU',            rate:8000  },
+  'G729/8000':       { pt:18,  name:'G729',            rate:8000  },
+  'G722/8000':       { pt:9,   name:'G722',            rate:8000  },
+  'opus/48000':      { pt:96,  name:'opus',            rate:48000, fmtp:'minptime=20;useinbandfec=1' },
+  'telephone-event': { pt:101, name:'telephone-event', rate:8000,  fmtp:'0-15' },
+};
+
+function getCodecs() {
+  const checked = document.querySelectorAll('.codec-cb:checked');
+  const vals = Array.from(checked).map(b => b.value);
+  return vals.length ? vals : ['PCMA/8000'];
+}
+
+function buildSDP(codecs) {
+  if (!codecs?.length) codecs = ['PCMA/8000'];
+  const direction = document.getElementById('sdpDirection')?.value || 'sendrecv';
+  const customLines = (document.getElementById('customSdp')?.value || '').trim();
+  const pts = codecs.map(k => CODEC_DEFS[k]?.pt ?? 8).join(' ');
+  const lines = [
+    'v=0',
+    'o=user1 53655765 2353687637 IN IP[local_ip_type] [local_ip]',
+    's=-',
+    'c=IN IP[media_ip_type] [media_ip]',
+    't=0 0',
+    `m=audio [media_port] RTP/AVP ${pts}`,
+  ];
+  codecs.forEach(k => {
+    const c = CODEC_DEFS[k]; if (!c) return;
+    lines.push(`a=rtpmap:${c.pt} ${c.name}/${c.rate}`);
+    if (c.fmtp) lines.push(`a=fmtp:${c.pt} ${c.fmtp}`);
+  });
+  lines.push(`a=${direction}`);
+  if (customLines) customLines.split('\n').forEach(l => { if (l.trim()) lines.push(l.trim()); });
+  return lines.join('\n');
+}
+
+function sdpBlock(codecs) {
+  const body = buildSDP(codecs);
+  const indented = body.split('\n').map(l => '      ' + l).join('\n');
+  return `Content-Type: application/sdp\n      Content-Length: [len]\n\n${indented}`;
+}
+function noSdp() { return 'Content-Length: 0'; }
+
+// ═══════════════════════════════════════════
+//  PRESETS
+// ═══════════════════════════════════════════
+const PRESETS = {
+  basic:    [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'180',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
+  early:    [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
+  teams:    [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
+  register: [{type:'REGISTER',sdp:false}],
+  redirect: [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'302',sdp:false}],
+};
+
+function loadPreset(name) {
+  steps = PRESETS[name].map(s => ({...s}));
+  if (name === 'teams') { setTransport('TLS'); switchTab('teams', document.querySelector('.tab-btn:last-child')); }
+  updateUI();
+}
+
+// ═══════════════════════════════════════════
+//  STEP MANAGEMENT
+// ═══════════════════════════════════════════
+function addStep(t) {
+  steps.push({ type:t, sdp:['INVITE','183','200'].includes(t) });
+  updateUI();
+}
+function removeStep(i) { steps.splice(i,1); updateUI(); }
+function toggleSDP(i)  { steps[i].sdp = !steps[i].sdp; updateUI(); }
+function clearAll()    { if (confirm('Reset workspace?')) { steps = []; updateUI(); } }
+
+// ═══════════════════════════════════════════
+//  TRANSPORT
+// ═══════════════════════════════════════════
+function setTransport(t) {
+  transport = t;
+  ['UDP','TCP','TLS'].forEach(x => {
+    const el = document.getElementById('topt-'+x);
+    el.className = 'transport-opt' + (x===t ? ` active-${x.toLowerCase()}` : '');
+  });
+  updateBadges();
+  updateUI();
+}
+
+function updateBadges() {
+  const cls = transport==='TLS'?'badge-tls':transport==='TCP'?'badge-tcp':'badge-udp';
+  ['uac','uas'].forEach(id => {
+    const b = document.getElementById(id+'-badge');
+    b.textContent = transport;
+    b.className = 'xml-pane-badge ' + cls;
+  });
+}
+
+// ═══════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+//  DRAG & DROP
+// ═══════════════════════════════════════════
+function makeDraggable(el, idx) {
+  el.draggable = true;
+  el.addEventListener('dragstart', () => { dragSrc = idx; el.style.opacity = '0.4'; });
+  el.addEventListener('dragend',   () => { el.style.opacity = '1'; });
+  el.addEventListener('dragover',  e => e.preventDefault());
+  el.addEventListener('drop', () => {
+    if (dragSrc===null || dragSrc===idx) return;
+    const moved = steps.splice(dragSrc,1)[0];
+    steps.splice(idx,0,moved);
+    dragSrc = null; updateUI();
+  });
+}
+
+// ═══════════════════════════════════════════
+//  VALIDATION
+// ═══════════════════════════════════════════
+function validate() {
+  const warns = [];
+  const has = t => steps.some(s => s.type===t);
+  if (has('183') && !has('PRACK'))
+    warns.push('⚠  183 without PRACK — UAS sends Require:100rel but UAC never acknowledges');
+  if (has('PRACK') && !has('183'))
+    warns.push('⚠  PRACK without 183 — nothing to acknowledge');
+  if (has('INVITE') && !has('BYE') && !has('302') && !has('CANCEL'))
+    warns.push('⚠  INVITE has no teardown — add BYE, CANCEL, or 302');
+  if (has('BYE') && !has('200'))
+    warns.push('⚠  BYE without 200 OK — dialog was never established');
+  const banner = document.getElementById('warnBanner');
+  banner.style.display = warns.length ? 'block' : 'none';
+  banner.innerHTML = warns.join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+}
+
+// ═══════════════════════════════════════════
+//  CONFIG HELPERS
+// ═══════════════════════════════════════════
+function updateDurLabel() {
+  const v = document.getElementById('callDuration').value;
+  document.getElementById('durLabel').textContent = v + ' ms';
+}
+
+function getCfg() {
+  return {
+    transport,
+    duration:    document.getElementById('callDuration').value,
+    redirect:    document.getElementById('redirectUri').value,
+    customHdrs:  document.getElementById('customHeaders').value.trim(),
+    pai:         document.getElementById('pai').value,
+    pcpid:       document.getElementById('pcpid').value,
+    histInfo:    document.getElementById('historyInfo').value,
+    sbcFqdn:     document.getElementById('sbcFqdn').value || 'sbc.contoso.com',
+    pauseDur:    document.getElementById('pauseDuration').value || '2000',
+    codecs:      getCodecs(),
+  };
+}
+
+function sipContact(cfg) {
+  if (cfg.transport==='TLS') return `<sip:sipp@${cfg.sbcFqdn}:5061;transport=tls>`;
+  return `<sip:sipp@[local_ip]:[local_port]>`;
+}
+function viaLine(cfg) {
+  const t = cfg.transport==='TLS' ? 'TLS' : cfg.transport;
+  return `Via: SIP/2.0/${t} [local_ip]:[local_port];branch=[branch]`;
+}
+function teamsHdrs(cfg) {
+  if (cfg.transport !== 'TLS') return '';
+  let out = '';
+  if (cfg.pai)     out += `\n      P-Asserted-Identity: <${cfg.pai}>`;
+  if (cfg.pcpid)   out += `\n      P-Called-Party-ID: <${cfg.pcpid}>`;
+  if (cfg.histInfo)out += `\n      History-Info: <${cfg.histInfo}>`;
+  return out;
+}
+
+// ═══════════════════════════════════════════
+//  XML GENERATION
+// ═══════════════════════════════════════════
+function generateXML(cfg) {
+  const customBlock = cfg.customHdrs
+    ? cfg.customHdrs.split('\n').map(h=>`      ${h.trim()}`).join('\n')+'\n' : '';
+  const tHdrs = teamsHdrs(cfg);
+
+  let uac = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n<!-- UAC Scenario · SIPp Architect v3.0 -->\n<scenario name="UAC_Scenario">\n`;
+  let uas = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n<!-- UAS Scenario · SIPp Architect v3.0 -->\n<scenario name="UAS_Scenario">\n`;
+  uas += `\n  <!-- Absorb unexpected error responses -->\n  <recv response="400" optional="true"/>\n  <recv response="500" optional="true"/>\n`;
+
+  steps.forEach((s, i) => {
+    const n = i+1;
+
+    // ── REGISTER ──
+    if (s.type==='REGISTER') {
+      uac += `
+  <!-- Step ${n}: REGISTER with Digest Authentication -->
+  <send retrans="500">
+    <![CDATA[
+      REGISTER sip:[remote_ip] SIP/2.0
+      ${viaLine(cfg)}
+      From: <sip:[service]@[remote_ip]>;tag=[pid]
+      To: <sip:[service]@[remote_ip]>
+      Call-ID: [call_id]
+      CSeq: 1 REGISTER
+      Contact: ${sipContact(cfg)}
+      Expires: 3600
+      Max-Forwards: 70
+      Content-Length: 0
+    ]]>
+  </send>
+
+  <!-- Wait for 401 Unauthorized challenge -->
+  <recv response="401" auth="true"/>
+
+  <!-- Retry with Authorization credentials -->
+  <send retrans="500">
+    <![CDATA[
+      REGISTER sip:[remote_ip] SIP/2.0
+      ${viaLine(cfg)}
+      From: <sip:[service]@[remote_ip]>;tag=[pid]
+      To: <sip:[service]@[remote_ip]>
+      [last_Call-ID:]
+      CSeq: 2 REGISTER
+      [authentication]
+      Contact: ${sipContact(cfg)}
+      Expires: 3600
+      Max-Forwards: 70
+      Content-Length: 0
+    ]]>
+  </send>
+
+  <recv response="200"/>
+`;
+      uas += `
+  <!-- Step ${n}: Handle REGISTER with 401 challenge -->
+  <recv request="REGISTER"/>
+  <send>
+    <![CDATA[
+      SIP/2.0 401 Unauthorized
+      [last_Via:]
+      [last_From:]
+      [last_To:];tag=[call_number]
+      [last_Call-ID:]
+      [last_CSeq:]
+      WWW-Authenticate: Digest realm="[remote_ip]", nonce="[authentication]"
+      Content-Length: 0
+    ]]>
+  </send>
+
+  <recv request="REGISTER"/>
+  <send>
+    <![CDATA[
+      SIP/2.0 200 OK
+      [last_Via:]
+      [last_From:]
+      [last_To:]
+      [last_Call-ID:]
+      [last_CSeq:]
+      Contact: ${sipContact(cfg)}
+      Expires: 3600
+      Content-Length: 0
+    ]]>
+  </send>
+`;
+    }
+
+    // ── INVITE ──
+    else if (s.type==='INVITE') {
+      uac += `
+  <!-- Step ${n}: Send INVITE -->
+  <send retrans="500">
+    <![CDATA[
+      INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0
+      ${viaLine(cfg)}
+      From: <sip:sipp@[local_ip]>;tag=[pid]
+      To: <sip:[service]@[remote_ip]>
+      Call-ID: [call_id]
+      CSeq: [cseq] INVITE
+      Contact: ${sipContact(cfg)}
+      Supported: 100rel, timer
+      Max-Forwards: 70
+${customBlock}${tHdrs ? tHdrs+'\n' : ''}      ${s.sdp ? sdpBlock(cfg.codecs) : noSdp()}
+    ]]>
+  </send>
+
+  <!-- Absorb 100 Trying -->
+  <recv response="100" optional="true"/>
+`;
+      uas += `
+  <!-- Step ${n}: Receive INVITE -->
+  <recv request="INVITE" crlf="true"/>
+`;
+    }
+
+    // ── 100 TRYING ──
+    else if (s.type==='100') {
+      uac += `\n  <!-- Step ${n}: Absorb 100 Trying -->\n  <recv response="100" optional="true"/>\n`;
+      uas += `
+  <!-- Step ${n}: Send 100 Trying -->
+  <send>
+    <![CDATA[
+      SIP/2.0 100 Trying
+      [last_Via:]
+      [last_From:]
+      [last_To:]
+      [last_Call-ID:]
+      [last_CSeq:]
+      Content-Length: 0
+    ]]>
+  </send>
+`;
+    }
+
+    // ── 180 RINGING ──
+    else if (s.type==='180') {
+      uac += `\n  <!-- Step ${n}: Receive 180 Ringing -->\n  <recv response="180" optional="true"/>\n`;
+      uas += `
+  <!-- Step ${n}: Send 180 Ringing -->
+  <send>
+    <![CDATA[
+      SIP/2.0 180 Ringing
+      [last_Via:]
+      [last_From:]
+      [last_To:];tag=[call_number]
+      [last_Call-ID:]
+      [last_CSeq:]
+      Contact: ${sipContact(cfg)}
+      ${s.sdp ? sdpBlock(cfg.codecs) : noSdp()}
+    ]]>
+  </send>
+`;
+    }
+
+    // ── 183 SESSION PROGRESS ──
+    else if (s.type==='183') {
+      uac += `\n  <!-- Step ${n}: Receive 183 Session Progress -->\n  <recv response="183" optional="true"/>\n`;
+      uas += `
+  <!-- Step ${n}: Send 183 Session Progress (Require: 100rel) -->
+  <send>
+    <![CDATA[
+      SIP/2.0 183 Session Progress
+      [last_Via:]
+      [last_From:]
+      [last_To:];tag=[call_number]
+      [last_Call-ID:]
+      [last_CSeq:]
+      RSeq: [rseq]
+      Require: 100rel
+      Contact: ${sipContact(cfg)}
+      ${s.sdp ? sdpBlock(cfg.codecs) : noSdp()}
+    ]]>
+  </send>
+`;
+    }
+
+    // ── PRACK ──
+    else if (s.type==='PRACK') {
+      uac += `
+  <!-- Step ${n}: Send PRACK to acknowledge provisional response -->
+  <send retrans="500">
+    <![CDATA[
+      PRACK [next_url] SIP/2.0
+      ${viaLine(cfg)}
+      From: <sip:sipp@[local_ip]>;tag=[pid]
+      To: <sip:[service]@[remote_ip]>;tag=[call_number]
+      Call-ID: [call_id]
+      CSeq: [cseq] PRACK
+      RAck: [last_RSeq] [last_CSeq_number] INVITE
+      Max-Forwards: 70
+      Content-Length: 0
+    ]]>
+  </send>
+
+  <!-- 200 OK to PRACK -->
+  <recv response="200"/>
+`;
+      uas += `
+  <!-- Step ${n}: Receive PRACK, send 200 OK -->
+  <recv request="PRACK"/>
+  <send>
+    <![CDATA[
+      SIP/2.0 200 OK
+      [last_Via:]
+      [last_From:]
+      [last_To:]
+      [last_Call-ID:]
+      [last_CSeq:]
+      Content-Length: 0
+    ]]>
+  </send>
+`;
+    }
+
+    // ── 200 OK + ACK ──
+    else if (s.type==='200') {
+      uac += `
+  <!-- Step ${n}: Receive 200 OK · Send ACK (fresh Via, not [last_Via:]) -->
+  <recv response="200" rrs="true"/>
+
+  <send>
+    <![CDATA[
+      ACK [next_url] SIP/2.0
+      Via: SIP/2.0/${cfg.transport==='TLS'?'TLS':cfg.transport} [local_ip]:[local_port];branch=[branch]
+      [routes]
+      From: <sip:sipp@[local_ip]>;tag=[pid]
+      To: <sip:[service]@[remote_ip]>;tag=[call_number]
+      Call-ID: [call_id]
+      CSeq: [cseq] ACK
+      Max-Forwards: 70
+      Content-Length: 0
+    ]]>
+  </send>
+`;
+      uas += `
+  <!-- Step ${n}: Send 200 OK · Receive ACK -->
+  <send retrans="500">
+    <![CDATA[
+      SIP/2.0 200 OK
+      [last_Via:]
+      [last_From:]
+      [last_To:];tag=[call_number]
+      [last_Call-ID:]
+      [last_CSeq:]
+      Contact: ${sipContact(cfg)}
+      ${s.sdp ? sdpBlock(cfg.codecs) : noSdp()}
+    ]]>
+  </send>
+
+  <recv request="ACK" optional="false" crlf="true"/>
+`;
+    }
+
+    // ── BYE ──
+    else if (s.type==='BYE') {
+      uac += `
+  <!-- Hold call for ${cfg.duration}ms then send BYE -->
+  <pause milliseconds="${cfg.duration}"/>
+
+  <!-- Step ${n}: Send BYE -->
+  <send retrans="500">
+    <![CDATA[
+      BYE [next_url] SIP/2.0
+      Via: SIP/2.0/${cfg.transport==='TLS'?'TLS':cfg.transport} [local_ip]:[local_port];branch=[branch]
+      [routes]
+      From: <sip:sipp@[local_ip]>;tag=[pid]
+      To: <sip:[service]@[remote_ip]>;tag=[call_number]
+      Call-ID: [call_id]
+      CSeq: [cseq] BYE
+      Max-Forwards: 70
+      Content-Length: 0
+    ]]>
+  </send>
+
+  <recv response="200"/>
+`;
+      uas += `
+  <!-- Step ${n}: Receive BYE · Send 200 OK -->
+  <recv request="BYE"/>
+  <send>
+    <![CDATA[
+      SIP/2.0 200 OK
+      [last_Via:]
+      [last_From:]
+      [last_To:]
+      [last_Call-ID:]
+      [last_CSeq:]
+      Content-Length: 0
+    ]]>
+  </send>
+`;
+    }
+
+    // ── CANCEL ──
+    else if (s.type==='CANCEL') {
+      uac += `
+  <!-- Step ${n}: Send CANCEL (early call termination) -->
+  <send retrans="500">
+    <![CDATA[
+      CANCEL sip:[service]@[remote_ip]:[remote_port] SIP/2.0
+      ${viaLine(cfg)}
+      From: <sip:sipp@[local_ip]>;tag=[pid]
+      To: <sip:[service]@[remote_ip]>
+      Call-ID: [call_id]
+      CSeq: [cseq] CANCEL
+      Max-Forwards: 70
+      Content-Length: 0
+    ]]>
+  </send>
+
+  <recv response="200"/>
+
+  <!-- Receive 487 Request Terminated on the INVITE transaction -->
+  <recv response="487" optional="true"/>
+  <send>
+    <![CDATA[
+      ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0
+      Via: SIP/2.0/${cfg.transport==='TLS'?'TLS':cfg.transport} [local_ip]:[local_port];branch=[branch]
+      From: <sip:sipp@[local_ip]>;tag=[pid]
+      To: <sip:[service]@[remote_ip]>
+      Call-ID: [call_id]
+      CSeq: [cseq] ACK
+      Max-Forwards: 70
+      Content-Length: 0
+    ]]>
+  </send>
+`;
+      uas += `
+  <!-- Step ${n}: Receive CANCEL · Send 200 + 487 -->
+  <recv request="CANCEL"/>
+  <send>
+    <![CDATA[
+      SIP/2.0 200 OK
+      [last_Via:]
+      [last_From:]
+      [last_To:]
+      [last_Call-ID:]
+      [last_CSeq:]
+      Content-Length: 0
+    ]]>
+  </send>
+  <send>
+    <![CDATA[
+      SIP/2.0 487 Request Terminated
+      [last_Via:]
+      [last_From:]
+      [last_To:]
+      [last_Call-ID:]
+      CSeq: [last_CSeq_number] INVITE
+      Content-Length: 0
+    ]]>
+  </send>
+  <recv request="ACK" optional="true"/>
+`;
+    }
+
+    // ── 302 REDIRECT ──
+    else if (s.type==='302') {
+      uac += `
+  <!-- Step ${n}: Receive 302 · Extract Contact for redirect -->
+  <recv response="302" optional="true">
+    <action>
+      <assign assign_to="redirect_contact" header_name="Contact"/>
+    </action>
+  </recv>
+`;
+      uas += `
+  <!-- Step ${n}: Send 302 Moved Temporarily -->
+  <send>
+    <![CDATA[
+      SIP/2.0 302 Moved Temporarily
+      [last_Via:]
+      [last_From:]
+      [last_To:];tag=[call_number]
+      [last_Call-ID:]
+      [last_CSeq:]
+      Contact: <${cfg.redirect}>
+      Content-Length: 0
+    ]]>
+  </send>
+`;
+    }
+
+    // ── PLAY PCAP ──
+    else if (s.type==='MEDIA') {
+      const blk = `\n  <!-- Step ${n}: Play PCAP audio -->\n  <nop>\n    <action>\n      <exec play_pcap_audio="media.pcap"/>\n    </action>\n  </nop>\n`;
+      uac += blk; uas += blk;
+    }
+
+    // ── PAUSE ──
+    else if (s.type==='PAUSE') {
+      const dur = cfg.pauseDur || '2000';
+      uac += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
+      uas += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
+    }
+  });
+
+  uac += `\n</scenario>`;
+  uas += `\n</scenario>`;
+  return { uac, uas };
+}
+
+// ═══════════════════════════════════════════
+//  RENDER CANVAS
+// ═══════════════════════════════════════════
+function renderCanvas() {
+  const canvas = document.getElementById('canvas');
+  const sdpAble = new Set(['INVITE','180','183','200']);
+
+  if (!steps.length) {
+    canvas.innerHTML = `<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">No steps yet.<br>Choose a Preset or<br>add steps manually.</div></div>`;
+    document.getElementById('stepCount').textContent = '0 steps';
+    document.getElementById('statusText').textContent = 'Ready · 0 steps';
+    return;
+  }
+
+  canvas.innerHTML = '';
+  document.getElementById('stepCount').textContent = steps.length + ' step' + (steps.length!==1?'s':'');
+  document.getElementById('statusText').textContent = `${steps.length} step${steps.length!==1?'s':''} · ${transport}`;
+
+  steps.forEach((s, i) => {
+    const color = COLORS[s.type] || '#4d6690';
+    const canSDP = sdpAble.has(s.type);
+
+    const card = document.createElement('div');
+    card.className = 'step-card';
+    card.style.borderLeftColor = color;
+
+    const sdpBtn = canSDP
+      ? `<button class="sdp-pill ${s.sdp?'sdp-on':'sdp-off'}" onclick="toggleSDP(${i})">SDP:${s.sdp?'ON':'OFF'}</button>`
+      : '';
+
+    const meta = s.type==='PAUSE'  ? cfg_pauseDur()+'ms' :
+                 s.type==='MEDIA'  ? 'media.pcap' :
+                 s.type==='PRACK'  ? '[next_url]' :
+                 s.type==='BYE'    ? '[next_url]' : '';
+
+    card.innerHTML = `
+      <span class="step-num">${i+1}</span>
+      <span class="step-badge" style="background:${color}1a;color:${color}">${s.type}</span>
+      <span class="step-meta">${meta}</span>
+      <div class="step-actions">${sdpBtn}<button class="del-btn" onclick="removeStep(${i})">✕</button></div>`;
+
+    makeDraggable(card, i);
+    canvas.appendChild(card);
+
+    if (i < steps.length-1) {
+      const a = document.createElement('div');
+      a.className = 'step-arrow'; a.textContent = '↓';
+      canvas.appendChild(a);
+    }
+  });
+}
+
+function cfg_pauseDur() {
+  return document.getElementById('pauseDuration')?.value || '2000';
+}
+
+// ═══════════════════════════════════════════
+//  SYNTAX HIGHLIGHTER (token-based, single pass)
+// ═══════════════════════════════════════════
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function highlightSIPLine(line) {
+  const M_REQ  = /^(\s*)(INVITE|REGISTER|BYE|ACK|CANCEL|PRACK|OPTIONS|NOTIFY|REFER|MESSAGE|UPDATE|SUBSCRIBE|PUBLISH)(\s+)(\S+)(\s+SIP\/2\.0)/;
+  const M_RESP = /^(\s*)(SIP\/2\.0\s+\d{3}\s+.*)/;
+  const M_HDR  = /^(\s*)(Via|From|To|Call-ID|CSeq|Contact|Content-Type|Content-Length|Max-Forwards|RSeq|RAck|Require|Supported|Expires|P-Asserted-Identity|P-Called-Party-ID|History-Info|Route|Record-Route|Authorization|WWW-Authenticate|Allow|User-Agent|Refer-To|Min-SE|Session-Expires|Accept)(\s*:)(.*)/;
+  const M_SDP  = /^(\s*)([vocstimuabkrze]=)(.*)/;
+  let m;
+  if ((m=line.match(M_REQ)))  return `${esc(m[1])}<span class="x-sip">${esc(m[2])}</span>${esc(m[3])}<span class="x-val">${esc(m[4])}</span>${esc(m[5])}`;
+  if ((m=line.match(M_RESP))) return `${esc(m[1])}<span class="x-resp">${esc(m[2])}</span>`;
+  if ((m=line.match(M_HDR)))  return `${esc(m[1])}<span class="x-hdr">${esc(m[2])}</span><span class="x-attr">${esc(m[3])}</span><span class="x-cdata">${esc(m[4])}</span>`;
+  if ((m=line.match(M_SDP)))  return `${esc(m[1])}<span class="x-attr">${esc(m[2])}</span><span class="x-sdp">${esc(m[3])}</span>`;
+  return esc(line);
+}
+
+function highlightTag(raw) {
+  const isClose = raw.startsWith('</'), selfClose = raw.endsWith('/>');
+  let inner = raw.slice(isClose?2:1, selfClose?raw.length-2:raw.length-1);
+  const sp = inner.search(/\s/);
+  const [tagName, attrStr] = sp===-1 ? [inner,''] : [inner.slice(0,sp), inner.slice(sp)];
+  const attrHL = attrStr
+    .replace(/([\w\-_]+)(\s*=\s*)("([^"]*)")/g, (_,n,eq,val)=>`<span class="x-attr">${esc(n)}</span>${esc(eq)}<span class="x-val">${esc(val)}</span>`)
+    .replace(/([\w\-_]+)(\s*=\s*)('([^']*)')/g, (_,n,eq,val)=>`<span class="x-attr">${esc(n)}</span>${esc(eq)}<span class="x-val">${esc(val)}</span>`);
+  return `<span class="x-tag">${isClose?'&lt;/':'&lt;'}<span style="color:#60a5fa">${esc(tagName)}</span>${attrHL}${selfClose?'/&gt;':'&gt;'}</span>`;
+}
+
+function syntaxHL(xml) {
+  const TOK = /(<!--[\s\S]*?-->)|(<!\[CDATA\[[\s\S]*?\]\]>)|(<\?[\s\S]*?\?>)|(<[^>]+>)|([^<]+)/g;
+  let out = ''; let m;
+  while ((m=TOK.exec(xml))!==null) {
+    const [,comment,cdata,pi,tag,text] = m;
+    if (comment) { out += `<span class="x-com">${esc(comment)}</span>`; }
+    else if (cdata) {
+      const body = cdata.slice(9, cdata.length-3);
+      const hl = body.split('\n').map(l=>highlightSIPLine(l)).join('\n');
+      out += `<span class="x-tag">&lt;![CDATA[</span>${hl}<span class="x-tag">]]&gt;</span>`;
+    }
+    else if (pi)   { out += `<span class="x-com">${esc(pi)}</span>`; }
+    else if (tag)  { out += highlightTag(tag); }
+    else if (text) { out += esc(text); }
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════
+//  LINE NUMBERS
+// ═══════════════════════════════════════════
+function updateLineNums(id, xml) {
+  const count = (xml.match(/\n/g) || []).length + 1;
+  // Right-align: pad to same width so column stays fixed
+  const w = String(count).length;
+  const nums = Array.from({length: count}, (_, i) => String(i+1).padStart(w)).join('\n');
+  document.getElementById(id + '-lines').textContent = nums;
+}
+
+function syncScroll(id) {
+  const pane = document.getElementById(id+'-out');
+  const nums = document.getElementById(id+'-lines');
+  nums.scrollTop = pane.scrollTop;
+}
+
+// ═══════════════════════════════════════════
+//  MAIN UPDATE
+// ═══════════════════════════════════════════
+function updateUI() {
+  const cfg = getCfg();
+  renderCanvas();
+  validate();
+  updateBadges();
+  const {uac, uas} = generateXML(cfg);
+  document.getElementById('uac-out').innerHTML = syntaxHL(uac);
+  document.getElementById('uas-out').innerHTML = syntaxHL(uas);
+  document.getElementById('uac-out').dataset.raw = uac;
+  document.getElementById('uas-out').dataset.raw = uas;
+  updateLineNums('uac', uac);
+  updateLineNums('uas', uas);
+}
+
+// ═══════════════════════════════════════════
+//  COPY TO CLIPBOARD
+// ═══════════════════════════════════════════
+function copyToClipboard(id) {
+  const raw = document.getElementById(id + '-out').dataset.raw || '';
+  if (!raw) return;
+
+  navigator.clipboard.writeText(raw).then(() => {
+    const btn = document.getElementById('copy-' + id);
+    btn.classList.add('copied');
+    btn.innerHTML = '<span class="copy-icon">✓</span> Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<span class="copy-icon">⎘</span> Copy';
+    }, 2000);
+  }).catch(() => {
+    // Fallback for browsers that block clipboard API on file:// protocol
+    const ta = document.createElement('textarea');
+    ta.value = raw;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('copy-' + id);
+    btn.classList.add('copied');
+    btn.innerHTML = '<span class="copy-icon">✓</span> Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<span class="copy-icon">⎘</span> Copy';
+    }, 2000);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  DOWNLOAD
+// ═══════════════════════════════════════════
+function downloadFile(id) {
+  const raw = document.getElementById(id+'-out').dataset.raw || '';
+  const a = document.createElement('a');
+  a.download = id+'_scenario.xml';
+  a.href = URL.createObjectURL(new Blob([raw],{type:'text/xml'}));
+  a.click();
+}
+function downloadZip() { ['uac','uas'].forEach(id=>downloadFile(id)); }
+
+// ═══════════════════════════════════════════
+//  CODEC PANEL INIT
+// ═══════════════════════════════════════════
+function renderCodecPanel() {
+  const list = document.getElementById('codecList');
+  list.innerHTML = '';
+  Object.entries(CODEC_DEFS).forEach(([key,c]) => {
+    const on = ['PCMA/8000','telephone-event'].includes(key);
+    const row = document.createElement('div');
+    row.className = 'codec-item';
+    row.innerHTML = `
+      <input type="checkbox" class="codec-cb" id="cb_${c.pt}" value="${key}" ${on?'checked':''} onchange="updateUI()">
+      <label for="cb_${c.pt}">${key}</label>
+      <span class="codec-pt">PT ${c.pt}</span>`;
+    list.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+renderCodecPanel();
+updateUI();
+</script>
+</body>
+</html>

@@ -738,11 +738,13 @@ body {
           <button class="comp-btn c-bye"      onclick="addStep('BYE')">BYE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ duration pause</span></button>
           <button class="comp-btn c-cancel"   onclick="addStep('CANCEL')">CANCEL<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ 487 ACK</span></button>
           <button class="comp-btn c-302"      onclick="addStep('302')">302 REDIRECT<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Moved Temp</span></button>
+          <button class="comp-btn c-bye"      style="color:#f87171;border-left-color:#f87171" onclick="addStep('4xx')">4xx ERROR<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Client failure</span></button>
+          <button class="comp-btn c-bye"      style="color:#fb923c;border-left-color:#fb923c" onclick="addStep('5xx')">5xx ERROR<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Server failure</span></button>
           <button class="comp-btn c-media"    onclick="addStep('MEDIA')">PLAY PCAP<br><span style="font-size:7px;font-weight:400;color:var(--muted)">media.pcap</span></button>
           <button class="comp-btn c-pause"    onclick="addStep('PAUSE')">PAUSE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">2000ms</span></button>
         </div>
         <div style="flex:1"></div>
-        <button class="reset-btn" onclick="clearAll()">↺ Reset Workspace</button>
+        <button class="reset-btn" id="resetBtn" onclick="clearAll()">↺ Reset Workspace</button>
       </div>
 
       <!-- ─── TAB: CONFIG ─── -->
@@ -910,7 +912,8 @@ const COLORS = {
   REGISTER:'#f472b6', INVITE:'#3b82f6', '100':'#4d6690',
   '180':'#38bdf8',    '183':'#f59e0b',  PRACK:'#a78bfa',
   '200':'#22c55e',    BYE:'#ef4444',    CANCEL:'#f97316',
-  '302':'#f97316',    MEDIA:'#818cf8',  PAUSE:'#4d6690'
+  '302':'#f97316',    '4xx':'#f87171',  '5xx':'#fb923c',
+  MEDIA:'#818cf8',    PAUSE:'#4d6690'
 };
 
 // ═══════════════════════════════════════════
@@ -987,7 +990,23 @@ function addStep(t) {
 }
 function removeStep(i) { steps.splice(i,1); updateUI(); }
 function toggleSDP(i)  { steps[i].sdp = !steps[i].sdp; updateUI(); }
-function clearAll()    { if (confirm('Reset workspace?')) { steps = []; updateUI(); } }
+function clearAll() {
+  steps = [];
+  updateUI();
+  const btn = document.getElementById('resetBtn');
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = '✓ Cleared';
+  btn.style.background = 'rgba(34,197,94,0.12)';
+  btn.style.borderColor = 'rgba(34,197,94,0.3)';
+  btn.style.color = '#22c55e';
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }, 1200);
+}
 
 // ═══════════════════════════════════════════
 //  TRANSPORT
@@ -1047,10 +1066,12 @@ function validate() {
     warns.push('⚠  183 without PRACK — UAS sends Require:100rel but UAC never acknowledges');
   if (has('PRACK') && !has('183'))
     warns.push('⚠  PRACK without 183 — nothing to acknowledge');
-  if (has('INVITE') && !has('BYE') && !has('302') && !has('CANCEL'))
-    warns.push('⚠  INVITE has no teardown — add BYE, CANCEL, or 302');
+  if (has('INVITE') && !has('BYE') && !has('302') && !has('CANCEL') && !has('4xx') && !has('5xx'))
+    warns.push('⚠  INVITE has no teardown — add BYE, CANCEL, 302, 4xx, or 5xx');
   if (has('BYE') && !has('200'))
     warns.push('⚠  BYE without 200 OK — dialog was never established');
+  if ((has('4xx') || has('5xx')) && !has('INVITE'))
+    warns.push('⚠  Error response without INVITE — nothing to reject');
   const banner = document.getElementById('warnBanner');
   banner.style.display = warns.length ? 'block' : 'none';
   banner.innerHTML = warns.join('&nbsp;&nbsp;·&nbsp;&nbsp;');
@@ -1087,422 +1108,476 @@ function viaLine(cfg) {
   const t = cfg.transport==='TLS' ? 'TLS' : cfg.transport;
   return `Via: SIP/2.0/${t} [local_ip]:[local_port];branch=[branch]`;
 }
-function teamsHdrs(cfg) {
-  if (cfg.transport !== 'TLS') return '';
-  let out = '';
-  if (cfg.pai)     out += `\n      P-Asserted-Identity: <${cfg.pai}>`;
-  if (cfg.pcpid)   out += `\n      P-Called-Party-ID: <${cfg.pcpid}>`;
-  if (cfg.histInfo)out += `\n      History-Info: <${cfg.histInfo}>`;
-  return out;
-}
 
 // ═══════════════════════════════════════════
 //  XML GENERATION
+//  Key rules for SIPp XML parse compliance:
+//  1. SIP message lines inside CDATA must have
+//     NO leading whitespace — SIPp is strict.
+//  2. Blank line (empty line) required between
+//     headers and SDP body.
+//  3. Content-Length must always be present.
+//  4. CDATA block itself is indented for XML
+//     readability but SIP content is column-0.
 // ═══════════════════════════════════════════
-function generateXML(cfg) {
-  const customBlock = cfg.customHdrs
-    ? cfg.customHdrs.split('\n').map(h=>`      ${h.trim()}`).join('\n')+'\n' : '';
-  const tHdrs = teamsHdrs(cfg);
 
-  let uac = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n<!-- UAC Scenario · SIPp Architect v3.0 -->\n<scenario name="UAC_Scenario">\n`;
-  let uas = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n<!-- UAS Scenario · SIPp Architect v3.0 -->\n<scenario name="UAS_Scenario">\n`;
-  uas += `\n  <!-- Absorb unexpected error responses -->\n  <recv response="400" optional="true"/>\n  <recv response="500" optional="true"/>\n`;
+// ── CDATA FORMAT (matches proven working SIPp scenario) ──
+// Rule 1: CDATA opens with blank line before first SIP line
+// Rule 2: CDATA closes with blank line after last SIP line
+// Rule 3: SIP lines at column 0 — no leading whitespace
+// Rule 4: Use [transport] keyword — NOT hardcoded UDP/TCP/TLS
+// Rule 5: [peer_tag_param] in ACK/BYE To header
+// Rule 6: Explicit CSeq integers (1 INVITE, 1 ACK, 2 BYE)
+// Rule 7: DOCTYPE declaration required
+
+function sendBlock(sipLines, retrans) {
+  const retransAttr = retrans ? ` retrans="${retrans}"` : '';
+  // blank line before AND after SIP content — matches proven working format
+  const body = '\n' + sipLines.join('\n') + '\n';
+  return `  <send${retransAttr}>\n<![CDATA[${body}\n]]>\n  </send>`;
+}
+
+function sdpLines(codecs) {
+  return buildSDP(codecs).split('\n');
+}
+
+// Headers array + blank line separator + SDP lines (no trailing '' — sendBlock adds final newline)
+function withSDP(headers, codecs) {
+  return [...headers, '', ...sdpLines(codecs)];
+}
+
+function generateXML(cfg) {
+  // Always use [transport] — SIPp resolves at runtime via -t flag
+  const via     = `Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]`;
+  const contact = `sip:sipp@[local_ip]:[local_port]`;
+  const tContact = cfg.transport === 'TLS'
+    ? `sip:sipp@${cfg.sbcFqdn}:5061;transport=tls`
+    : contact;
+
+  const customHdrLines = cfg.customHdrs
+    ? cfg.customHdrs.split('\n').map(h => h.trim()).filter(Boolean)
+    : [];
+  const tHdrLines = cfg.transport === 'TLS' ? [
+    cfg.pai      ? `P-Asserted-Identity: <${cfg.pai}>` : null,
+    cfg.pcpid    ? `P-Called-Party-ID: <${cfg.pcpid}>` : null,
+    cfg.histInfo ? `History-Info: <${cfg.histInfo}>` : null,
+  ].filter(Boolean) : [];
+
+  const DOCTYPE = `<!DOCTYPE scenario SYSTEM "sipp.dtd">`;
+  let uac = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n${DOCTYPE}\n\n<scenario name="UAC_Scenario">\n`;
+  let uas = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n${DOCTYPE}\n\n<scenario name="UAS_Scenario">\n`;
+
+  // UAS absorbs stray errors
+  uas += `\n  <recv response="400" optional="true"/>\n`;
+  uas += `  <recv response="500" optional="true"/>\n`;
 
   steps.forEach((s, i) => {
-    const n = i+1;
+    const n = i + 1;
 
     // ── REGISTER ──
-    if (s.type==='REGISTER') {
-      uac += `
-  <!-- Step ${n}: REGISTER with Digest Authentication -->
-  <send retrans="500">
-    <![CDATA[
-      REGISTER sip:[remote_ip] SIP/2.0
-      ${viaLine(cfg)}
-      From: <sip:[service]@[remote_ip]>;tag=[pid]
-      To: <sip:[service]@[remote_ip]>
-      Call-ID: [call_id]
-      CSeq: 1 REGISTER
-      Contact: ${sipContact(cfg)}
-      Expires: 3600
-      Max-Forwards: 70
-      Content-Length: 0
-    ]]>
-  </send>
+    if (s.type === 'REGISTER') {
+      const regHdrs1 = [
+        `REGISTER sip:[remote_ip] SIP/2.0`,
+        via,
+        `From: sip:sipp@[local_ip]:[local_port];tag=[call_number]`,
+        `To: sip:[service]@[remote_ip]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 REGISTER`,
+        `Contact: ${tContact}`,
+        `Expires: 3600`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      const regHdrs2 = [
+        `REGISTER sip:[remote_ip] SIP/2.0`,
+        via,
+        `From: sip:sipp@[local_ip]:[local_port];tag=[call_number]`,
+        `To: sip:[service]@[remote_ip]`,
+        `[last_Call-ID:]`,
+        `CSeq: 2 REGISTER`,
+        `[authentication]`,
+        `Contact: ${tContact}`,
+        `Expires: 3600`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: REGISTER with Digest Authentication -->\n`;
+      uac += sendBlock(regHdrs1, 500) + `\n\n`;
+      uac += `  <recv response="401" auth="true"/>\n\n`;
+      uac += sendBlock(regHdrs2, 500) + `\n\n`;
+      uac += `  <recv response="200"/>\n`;
 
-  <!-- Wait for 401 Unauthorized challenge -->
-  <recv response="401" auth="true"/>
-
-  <!-- Retry with Authorization credentials -->
-  <send retrans="500">
-    <![CDATA[
-      REGISTER sip:[remote_ip] SIP/2.0
-      ${viaLine(cfg)}
-      From: <sip:[service]@[remote_ip]>;tag=[pid]
-      To: <sip:[service]@[remote_ip]>
-      [last_Call-ID:]
-      CSeq: 2 REGISTER
-      [authentication]
-      Contact: ${sipContact(cfg)}
-      Expires: 3600
-      Max-Forwards: 70
-      Content-Length: 0
-    ]]>
-  </send>
-
-  <recv response="200"/>
-`;
-      uas += `
-  <!-- Step ${n}: Handle REGISTER with 401 challenge -->
-  <recv request="REGISTER"/>
-  <send>
-    <![CDATA[
-      SIP/2.0 401 Unauthorized
-      [last_Via:]
-      [last_From:]
-      [last_To:];tag=[call_number]
-      [last_Call-ID:]
-      [last_CSeq:]
-      WWW-Authenticate: Digest realm="[remote_ip]", nonce="[authentication]"
-      Content-Length: 0
-    ]]>
-  </send>
-
-  <recv request="REGISTER"/>
-  <send>
-    <![CDATA[
-      SIP/2.0 200 OK
-      [last_Via:]
-      [last_From:]
-      [last_To:]
-      [last_Call-ID:]
-      [last_CSeq:]
-      Contact: ${sipContact(cfg)}
-      Expires: 3600
-      Content-Length: 0
-    ]]>
-  </send>
-`;
+      const reg401 = [
+        `SIP/2.0 401 Unauthorized`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `WWW-Authenticate: Digest realm="[remote_ip]", nonce="[authentication]"`,
+        `Content-Length: 0`,
+      ];
+      const reg200 = [
+        `SIP/2.0 200 OK`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Contact: ${tContact}`,
+        `Expires: 3600`,
+        `Content-Length: 0`,
+      ];
+      uas += `\n  <!-- Step ${n}: Receive REGISTER, challenge, then accept -->\n`;
+      uas += `  <recv request="REGISTER"/>\n`;
+      uas += sendBlock(reg401) + `\n\n`;
+      uas += `  <recv request="REGISTER"/>\n`;
+      uas += sendBlock(reg200) + `\n`;
     }
 
     // ── INVITE ──
-    else if (s.type==='INVITE') {
-      uac += `
-  <!-- Step ${n}: Send INVITE -->
-  <send retrans="500">
-    <![CDATA[
-      INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0
-      ${viaLine(cfg)}
-      From: <sip:sipp@[local_ip]>;tag=[pid]
-      To: <sip:[service]@[remote_ip]>
-      Call-ID: [call_id]
-      CSeq: [cseq] INVITE
-      Contact: ${sipContact(cfg)}
-      Supported: 100rel, timer
-      Max-Forwards: 70
-${customBlock}${tHdrs ? tHdrs+'\n' : ''}      ${s.sdp ? sdpBlock(cfg.codecs) : noSdp()}
-    ]]>
-  </send>
+    else if (s.type === 'INVITE') {
+      const invHdrs = [
+        `INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 INVITE`,
+        `Contact: ${tContact}`,
+        `Supported: 100rel, timer`,
+        `Max-Forwards: 70`,
+        ...customHdrLines,
+        ...tHdrLines,
+        ...(s.sdp
+          ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
+          : [`Content-Length: 0`]
+        ),
+      ];
+      uac += `\n  <!-- Step ${n}: Send INVITE -->\n`;
+      uac += sendBlock(s.sdp ? withSDP(invHdrs, cfg.codecs) : invHdrs, 500) + `\n`;
 
-  <!-- Absorb 100 Trying -->
-  <recv response="100" optional="true"/>
-`;
-      uas += `
-  <!-- Step ${n}: Receive INVITE -->
-  <recv request="INVITE" crlf="true"/>
-`;
+      uas += `\n  <!-- Step ${n}: Receive INVITE -->\n`;
+      uas += `  <recv request="INVITE" crlf="true"/>\n`;
     }
 
     // ── 100 TRYING ──
-    else if (s.type==='100') {
-      uac += `\n  <!-- Step ${n}: Absorb 100 Trying -->\n  <recv response="100" optional="true"/>\n`;
-      uas += `
-  <!-- Step ${n}: Send 100 Trying -->
-  <send>
-    <![CDATA[
-      SIP/2.0 100 Trying
-      [last_Via:]
-      [last_From:]
-      [last_To:]
-      [last_Call-ID:]
-      [last_CSeq:]
-      Content-Length: 0
-    ]]>
-  </send>
-`;
+    else if (s.type === '100') {
+      uac += `\n  <!-- Step ${n}: Absorb 100 Trying -->\n`;
+      uac += `  <recv response="100" optional="true"/>\n`;
+
+      const h100 = [
+        `SIP/2.0 100 Trying`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Content-Length: 0`,
+      ];
+      uas += `\n  <!-- Step ${n}: Send 100 Trying -->\n`;
+      uas += sendBlock(h100) + `\n`;
     }
 
     // ── 180 RINGING ──
-    else if (s.type==='180') {
-      uac += `\n  <!-- Step ${n}: Receive 180 Ringing -->\n  <recv response="180" optional="true"/>\n`;
-      uas += `
-  <!-- Step ${n}: Send 180 Ringing -->
-  <send>
-    <![CDATA[
-      SIP/2.0 180 Ringing
-      [last_Via:]
-      [last_From:]
-      [last_To:];tag=[call_number]
-      [last_Call-ID:]
-      [last_CSeq:]
-      Contact: ${sipContact(cfg)}
-      ${s.sdp ? sdpBlock(cfg.codecs) : noSdp()}
-    ]]>
-  </send>
-`;
+    else if (s.type === '180') {
+      uac += `\n  <!-- Step ${n}: Receive 180 Ringing -->\n`;
+      uac += `  <recv response="180" optional="true"/>\n`;
+
+      const h180base = [
+        `SIP/2.0 180 Ringing`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Contact: ${tContact}`,
+        ...(s.sdp
+          ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
+          : [`Content-Length: 0`]
+        ),
+      ];
+      uas += `\n  <!-- Step ${n}: Send 180 Ringing -->\n`;
+      uas += sendBlock(s.sdp ? withSDP(h180base, cfg.codecs) : h180base) + `\n`;
     }
 
     // ── 183 SESSION PROGRESS ──
-    else if (s.type==='183') {
-      uac += `\n  <!-- Step ${n}: Receive 183 Session Progress -->\n  <recv response="183" optional="true"/>\n`;
-      uas += `
-  <!-- Step ${n}: Send 183 Session Progress (Require: 100rel) -->
-  <send>
-    <![CDATA[
-      SIP/2.0 183 Session Progress
-      [last_Via:]
-      [last_From:]
-      [last_To:];tag=[call_number]
-      [last_Call-ID:]
-      [last_CSeq:]
-      RSeq: [rseq]
-      Require: 100rel
-      Contact: ${sipContact(cfg)}
-      ${s.sdp ? sdpBlock(cfg.codecs) : noSdp()}
-    ]]>
-  </send>
-`;
+    else if (s.type === '183') {
+      uac += `\n  <!-- Step ${n}: Receive 183 Session Progress -->\n`;
+      uac += `  <recv response="183" optional="true"/>\n`;
+
+      const h183base = [
+        `SIP/2.0 183 Session Progress`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `RSeq: [rseq]`,
+        `Require: 100rel`,
+        `Contact: ${tContact}`,
+        ...(s.sdp
+          ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
+          : [`Content-Length: 0`]
+        ),
+      ];
+      uas += `\n  <!-- Step ${n}: Send 183 Session Progress -->\n`;
+      uas += sendBlock(s.sdp ? withSDP(h183base, cfg.codecs) : h183base) + `\n`;
     }
 
     // ── PRACK ──
-    else if (s.type==='PRACK') {
-      uac += `
-  <!-- Step ${n}: Send PRACK to acknowledge provisional response -->
-  <send retrans="500">
-    <![CDATA[
-      PRACK [next_url] SIP/2.0
-      ${viaLine(cfg)}
-      From: <sip:sipp@[local_ip]>;tag=[pid]
-      To: <sip:[service]@[remote_ip]>;tag=[call_number]
-      Call-ID: [call_id]
-      CSeq: [cseq] PRACK
-      RAck: [last_RSeq] [last_CSeq_number] INVITE
-      Max-Forwards: 70
-      Content-Length: 0
-    ]]>
-  </send>
+    else if (s.type === 'PRACK') {
+      const prackHdrs = [
+        `PRACK [next_url] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 2 PRACK`,
+        `RAck: [last_RSeq] [last_CSeq_number] INVITE`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      const prack200 = [
+        `SIP/2.0 200 OK`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: Send PRACK -->\n`;
+      uac += sendBlock(prackHdrs, 500) + `\n\n`;
+      uac += `  <recv response="200"/>\n`;
 
-  <!-- 200 OK to PRACK -->
-  <recv response="200"/>
-`;
-      uas += `
-  <!-- Step ${n}: Receive PRACK, send 200 OK -->
-  <recv request="PRACK"/>
-  <send>
-    <![CDATA[
-      SIP/2.0 200 OK
-      [last_Via:]
-      [last_From:]
-      [last_To:]
-      [last_Call-ID:]
-      [last_CSeq:]
-      Content-Length: 0
-    ]]>
-  </send>
-`;
+      uas += `\n  <!-- Step ${n}: Receive PRACK, send 200 OK -->\n`;
+      uas += `  <recv request="PRACK"/>\n`;
+      uas += sendBlock(prack200) + `\n`;
     }
 
     // ── 200 OK + ACK ──
-    else if (s.type==='200') {
-      uac += `
-  <!-- Step ${n}: Receive 200 OK · Send ACK (fresh Via, not [last_Via:]) -->
-  <recv response="200" rrs="true"/>
+    else if (s.type === '200') {
+      // ACK: fresh Via+branch, [peer_tag_param] for To tag, CSeq 1 ACK
+      const ackHdrs = [
+        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 ACK`,
+        `Contact: ${tContact}`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: Receive 200 OK, send ACK -->\n`;
+      uac += `  <recv response="200" rtd="true"/>\n\n`;
+      uac += sendBlock(ackHdrs) + `\n`;
 
-  <send>
-    <![CDATA[
-      ACK [next_url] SIP/2.0
-      Via: SIP/2.0/${cfg.transport==='TLS'?'TLS':cfg.transport} [local_ip]:[local_port];branch=[branch]
-      [routes]
-      From: <sip:sipp@[local_ip]>;tag=[pid]
-      To: <sip:[service]@[remote_ip]>;tag=[call_number]
-      Call-ID: [call_id]
-      CSeq: [cseq] ACK
-      Max-Forwards: 70
-      Content-Length: 0
-    ]]>
-  </send>
-`;
-      uas += `
-  <!-- Step ${n}: Send 200 OK · Receive ACK -->
-  <send retrans="500">
-    <![CDATA[
-      SIP/2.0 200 OK
-      [last_Via:]
-      [last_From:]
-      [last_To:];tag=[call_number]
-      [last_Call-ID:]
-      [last_CSeq:]
-      Contact: ${sipContact(cfg)}
-      ${s.sdp ? sdpBlock(cfg.codecs) : noSdp()}
-    ]]>
-  </send>
-
-  <recv request="ACK" optional="false" crlf="true"/>
-`;
+      const ok200base = [
+        `SIP/2.0 200 OK`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Contact: ${tContact}`,
+        ...(s.sdp
+          ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
+          : [`Content-Length: 0`]
+        ),
+      ];
+      uas += `\n  <!-- Step ${n}: Send 200 OK, receive ACK -->\n`;
+      uas += sendBlock(s.sdp ? withSDP(ok200base, cfg.codecs) : ok200base, 500) + `\n\n`;
+      uas += `  <recv request="ACK" crlf="true"/>\n`;
     }
 
     // ── BYE ──
-    else if (s.type==='BYE') {
-      uac += `
-  <!-- Hold call for ${cfg.duration}ms then send BYE -->
-  <pause milliseconds="${cfg.duration}"/>
+    else if (s.type === 'BYE') {
+      // BYE: fresh Via+branch, [peer_tag_param], CSeq 2 BYE
+      const byeHdrs = [
+        `BYE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 2 BYE`,
+        `Contact: ${tContact}`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      const bye200 = [
+        `SIP/2.0 200 OK`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Hold ${cfg.duration}ms then send BYE -->\n`;
+      uac += `  <pause milliseconds="${cfg.duration}"/>\n\n`;
+      uac += `  <!-- Step ${n}: Send BYE -->\n`;
+      uac += sendBlock(byeHdrs, 500) + `\n\n`;
+      uac += `  <recv response="200" crlf="true"/>\n`;
 
-  <!-- Step ${n}: Send BYE -->
-  <send retrans="500">
-    <![CDATA[
-      BYE [next_url] SIP/2.0
-      Via: SIP/2.0/${cfg.transport==='TLS'?'TLS':cfg.transport} [local_ip]:[local_port];branch=[branch]
-      [routes]
-      From: <sip:sipp@[local_ip]>;tag=[pid]
-      To: <sip:[service]@[remote_ip]>;tag=[call_number]
-      Call-ID: [call_id]
-      CSeq: [cseq] BYE
-      Max-Forwards: 70
-      Content-Length: 0
-    ]]>
-  </send>
-
-  <recv response="200"/>
-`;
-      uas += `
-  <!-- Step ${n}: Receive BYE · Send 200 OK -->
-  <recv request="BYE"/>
-  <send>
-    <![CDATA[
-      SIP/2.0 200 OK
-      [last_Via:]
-      [last_From:]
-      [last_To:]
-      [last_Call-ID:]
-      [last_CSeq:]
-      Content-Length: 0
-    ]]>
-  </send>
-`;
+      uas += `\n  <!-- Step ${n}: Receive BYE, send 200 OK -->\n`;
+      uas += `  <recv request="BYE"/>\n`;
+      uas += sendBlock(bye200) + `\n`;
     }
 
     // ── CANCEL ──
-    else if (s.type==='CANCEL') {
-      uac += `
-  <!-- Step ${n}: Send CANCEL (early call termination) -->
-  <send retrans="500">
-    <![CDATA[
-      CANCEL sip:[service]@[remote_ip]:[remote_port] SIP/2.0
-      ${viaLine(cfg)}
-      From: <sip:sipp@[local_ip]>;tag=[pid]
-      To: <sip:[service]@[remote_ip]>
-      Call-ID: [call_id]
-      CSeq: [cseq] CANCEL
-      Max-Forwards: 70
-      Content-Length: 0
-    ]]>
-  </send>
+    else if (s.type === 'CANCEL') {
+      const cancelHdrs = [
+        `CANCEL sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 CANCEL`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      const ackFor487 = [
+        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 ACK`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      const cancel200 = [
+        `SIP/2.0 200 OK`,
+        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+        `[last_Call-ID:]`, `[last_CSeq:]`,
+        `Content-Length: 0`,
+      ];
+      const inv487 = [
+        `SIP/2.0 487 Request Terminated`,
+        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+        `[last_Call-ID:]`,
+        `CSeq: [last_CSeq_number] INVITE`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: Send CANCEL -->\n`;
+      uac += sendBlock(cancelHdrs, 500) + `\n\n`;
+      uac += `  <recv response="200"/>\n`;
+      uac += `  <recv response="487" optional="true"/>\n`;
+      uac += sendBlock(ackFor487) + `\n`;
 
-  <recv response="200"/>
-
-  <!-- Receive 487 Request Terminated on the INVITE transaction -->
-  <recv response="487" optional="true"/>
-  <send>
-    <![CDATA[
-      ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0
-      Via: SIP/2.0/${cfg.transport==='TLS'?'TLS':cfg.transport} [local_ip]:[local_port];branch=[branch]
-      From: <sip:sipp@[local_ip]>;tag=[pid]
-      To: <sip:[service]@[remote_ip]>
-      Call-ID: [call_id]
-      CSeq: [cseq] ACK
-      Max-Forwards: 70
-      Content-Length: 0
-    ]]>
-  </send>
-`;
-      uas += `
-  <!-- Step ${n}: Receive CANCEL · Send 200 + 487 -->
-  <recv request="CANCEL"/>
-  <send>
-    <![CDATA[
-      SIP/2.0 200 OK
-      [last_Via:]
-      [last_From:]
-      [last_To:]
-      [last_Call-ID:]
-      [last_CSeq:]
-      Content-Length: 0
-    ]]>
-  </send>
-  <send>
-    <![CDATA[
-      SIP/2.0 487 Request Terminated
-      [last_Via:]
-      [last_From:]
-      [last_To:]
-      [last_Call-ID:]
-      CSeq: [last_CSeq_number] INVITE
-      Content-Length: 0
-    ]]>
-  </send>
-  <recv request="ACK" optional="true"/>
-`;
+      uas += `\n  <!-- Step ${n}: Receive CANCEL, send 200 + 487 -->\n`;
+      uas += `  <recv request="CANCEL"/>\n`;
+      uas += sendBlock(cancel200) + `\n`;
+      uas += sendBlock(inv487) + `\n`;
+      uas += `  <recv request="ACK" optional="true"/>\n`;
     }
 
     // ── 302 REDIRECT ──
-    else if (s.type==='302') {
-      uac += `
-  <!-- Step ${n}: Receive 302 · Extract Contact for redirect -->
-  <recv response="302" optional="true">
-    <action>
-      <assign assign_to="redirect_contact" header_name="Contact"/>
-    </action>
-  </recv>
-`;
-      uas += `
-  <!-- Step ${n}: Send 302 Moved Temporarily -->
-  <send>
-    <![CDATA[
-      SIP/2.0 302 Moved Temporarily
-      [last_Via:]
-      [last_From:]
-      [last_To:];tag=[call_number]
-      [last_Call-ID:]
-      [last_CSeq:]
-      Contact: <${cfg.redirect}>
-      Content-Length: 0
-    ]]>
-  </send>
-`;
+    else if (s.type === '302') {
+      const redir302 = [
+        `SIP/2.0 302 Moved Temporarily`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Contact: <${cfg.redirect}>`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: Receive 302 -->\n`;
+      uac += `  <recv response="302" optional="true"/>\n`;
+
+      uas += `\n  <!-- Step ${n}: Send 302 Moved Temporarily -->\n`;
+      uas += sendBlock(redir302) + `\n`;
+    }
+
+    // ── 4xx CLIENT ERROR (UAS sends, UAC recvs and must ACK per RFC 3261 §17.1.1.3) ──
+    else if (s.type === '4xx') {
+      const errAck4 = [
+        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 ACK`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: Receive 4xx error, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
+      uac += `  <recv response="4xx"/>\n`;
+      uac += sendBlock(errAck4) + `\n`;
+
+      const h4xx = [
+        `SIP/2.0 486 Busy Here`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Content-Length: 0`,
+      ];
+      uas += `\n  <!-- Step ${n}: Send 4xx, receive mandatory ACK -->\n`;
+      uas += sendBlock(h4xx) + `\n`;
+      uas += `  <recv request="ACK" optional="true"/>\n`;
+    }
+
+    // ── 5xx SERVER ERROR (UAS sends, UAC recvs and must ACK per RFC 3261 §17.1.1.3) ──
+    else if (s.type === '5xx') {
+      const errAck5 = [
+        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 ACK`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: Receive 5xx error, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
+      uac += `  <recv response="5xx"/>\n`;
+      uac += sendBlock(errAck5) + `\n`;
+
+      const h5xx = [
+        `SIP/2.0 503 Service Unavailable`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Retry-After: 30`,
+        `Content-Length: 0`,
+      ];
+      uas += `\n  <!-- Step ${n}: Send 5xx, receive mandatory ACK -->\n`;
+      uas += sendBlock(h5xx) + `\n`;
+      uas += `  <recv request="ACK" optional="true"/>\n`;
     }
 
     // ── PLAY PCAP ──
-    else if (s.type==='MEDIA') {
+    else if (s.type === 'MEDIA') {
       const blk = `\n  <!-- Step ${n}: Play PCAP audio -->\n  <nop>\n    <action>\n      <exec play_pcap_audio="media.pcap"/>\n    </action>\n  </nop>\n`;
       uac += blk; uas += blk;
     }
 
     // ── PAUSE ──
-    else if (s.type==='PAUSE') {
+    else if (s.type === 'PAUSE') {
       const dur = cfg.pauseDur || '2000';
       uac += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
       uas += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
     }
   });
 
+  // SIPp statistics blocks — match proven working scenario format
+  const stats = `\n  <ResponseTimeRepartition value="10, 20, 30, 40, 50, 100, 150, 200"/>\n  <CallLengthRepartition value="10, 50, 100, 500, 1000, 5000, 10000"/>\n`;
+  uac += stats;
+  uas += stats;
+
   uac += `\n</scenario>`;
   uas += `\n</scenario>`;
   return { uac, uas };
 }
 
-// ═══════════════════════════════════════════
-//  RENDER CANVAS
-// ═══════════════════════════════════════════
 function renderCanvas() {
   const canvas = document.getElementById('canvas');
   const sdpAble = new Set(['INVITE','180','183','200']);

@@ -715,7 +715,12 @@ body {
 
         <button class="preset-btn" onclick="loadPreset('redirect')">
           <div class="preset-icon" style="background:rgba(249,115,22,0.15);color:var(--orange)">▶</div>
-          <div><div style="color:var(--text);font-weight:600">302 Redirect</div><div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 100 · 302</div></div>
+          <div><div style="color:var(--text);font-weight:600">302 Redirect</div><div style="color:var(--muted);font-size:8px;margin-top:2px">UAC recvs 302 · UAS sends 302 + ACK</div></div>
+        </button>
+
+        <button class="preset-btn" onclick="loadPreset('egress302')">
+          <div class="preset-icon" style="background:rgba(34,197,94,0.12);color:var(--green)">▶</div>
+          <div><div style="color:var(--text);font-weight:600">Egress 302 → Re-INVITE</div><div style="color:var(--muted);font-size:8px;margin-top:2px">B2BUA: Phase1 302 · Phase2 Re-INVITE</div></div>
         </button>
 
         <div style="flex:1"></div>
@@ -913,7 +918,7 @@ const COLORS = {
   '180':'#38bdf8',    '183':'#f59e0b',  PRACK:'#a78bfa',
   '200':'#22c55e',    BYE:'#ef4444',    CANCEL:'#f97316',
   '302':'#f97316',    '4xx':'#f87171',  '5xx':'#fb923c',
-  MEDIA:'#818cf8',    PAUSE:'#4d6690'
+  EGRESS302:'#22c55e', MEDIA:'#818cf8', PAUSE:'#4d6690'
 };
 
 // ═══════════════════════════════════════════
@@ -968,11 +973,12 @@ function noSdp() { return 'Content-Length: 0'; }
 //  PRESETS
 // ═══════════════════════════════════════════
 const PRESETS = {
-  basic:    [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'180',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
-  early:    [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
-  teams:    [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
-  register: [{type:'REGISTER',sdp:false}],
-  redirect: [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'302',sdp:false}],
+  basic:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'180',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
+  early:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
+  teams:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
+  register:  [{type:'REGISTER',sdp:false}],
+  redirect:  [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'302',sdp:false}],
+  egress302: [{type:'EGRESS302',sdp:true}],
 };
 
 function loadPreset(name) {
@@ -1066,7 +1072,7 @@ function validate() {
     warns.push('⚠  183 without PRACK — UAS sends Require:100rel but UAC never acknowledges');
   if (has('PRACK') && !has('183'))
     warns.push('⚠  PRACK without 183 — nothing to acknowledge');
-  if (has('INVITE') && !has('BYE') && !has('302') && !has('CANCEL') && !has('4xx') && !has('5xx'))
+  if (has('INVITE') && !has('BYE') && !has('302') && !has('CANCEL') && !has('4xx') && !has('5xx') && !has('EGRESS302'))
     warns.push('⚠  INVITE has no teardown — add BYE, CANCEL, 302, 4xx, or 5xx');
   if (has('BYE') && !has('200'))
     warns.push('⚠  BYE without 200 OK — dialog was never established');
@@ -1166,10 +1172,6 @@ function generateXML(cfg) {
   const DOCTYPE = `<!DOCTYPE scenario SYSTEM "sipp.dtd">`;
   let uac = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n${DOCTYPE}\n\n<scenario name="UAC_Scenario">\n`;
   let uas = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n${DOCTYPE}\n\n<scenario name="UAS_Scenario">\n`;
-
-  // UAS absorbs stray errors
-  uas += `\n  <recv response="400" optional="true"/>\n`;
-  uas += `  <recv response="500" optional="true"/>\n`;
 
   steps.forEach((s, i) => {
     const n = i + 1;
@@ -1475,6 +1477,8 @@ function generateXML(cfg) {
     }
 
     // ── 302 REDIRECT ──
+    // RFC 3261 §8.1.3.4: UAC receives 302, MUST send ACK to close transaction
+    // UAS must have received an INVITE before it can send any response
     else if (s.type === '302') {
       const redir302 = [
         `SIP/2.0 302 Moved Temporarily`,
@@ -1486,11 +1490,27 @@ function generateXML(cfg) {
         `Contact: <${cfg.redirect}>`,
         `Content-Length: 0`,
       ];
-      uac += `\n  <!-- Step ${n}: Receive 302 -->\n`;
-      uac += `  <recv response="302" optional="true"/>\n`;
+      // UAC: recv 302, then send mandatory ACK to close the transaction
+      const ack302 = [
+        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 ACK`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: Receive 302, send mandatory ACK (RFC 3261 §8.1.3.4) -->\n`;
+      uac += `  <recv response="302"/>\n`;
+      uac += sendBlock(ack302) + `\n`;
 
-      uas += `\n  <!-- Step ${n}: Send 302 Moved Temporarily -->\n`;
+      // UAS: recv INVITE first, then send 302
+      uas += `\n  <!-- Step ${n}: Receive INVITE, send 302 Moved Temporarily -->\n`;
+      uas += `  <recv request="INVITE" crlf="true"/>\n`;
       uas += sendBlock(redir302) + `\n`;
+      uas += `  <!-- Receive mandatory ACK from UAC -->\n`;
+      uas += `  <recv request="ACK" crlf="true"/>\n`;
     }
 
     // ── 4xx CLIENT ERROR (UAS sends, UAC recvs and must ACK per RFC 3261 §17.1.1.3) ──
@@ -1554,7 +1574,124 @@ function generateXML(cfg) {
       uas += `  <recv request="ACK" optional="true"/>\n`;
     }
 
-    // ── PLAY PCAP ──
+    // ── EGRESS 302 → RE-INVITE (compound two-phase UAS) ──
+    // UAC: plain basic call — it just sends INVITE and waits for 200
+    // UAS: Phase 1 answers with 302, Phase 2 handles the re-INVITE
+    else if (s.type === 'EGRESS302') {
+      // ── UAC side: standard INVITE → 200 → ACK → pause → BYE ──
+      const invHdrs = [
+        `INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 INVITE`,
+        `Contact: ${tContact}`,
+        `Supported: 100rel, timer`,
+        `Max-Forwards: 70`,
+        ...(s.sdp ? [`Content-Type: application/sdp`, `Content-Length: [len]`] : [`Content-Length: 0`]),
+      ];
+      const ackHdrs = [
+        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 1 ACK`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      const byeHdrs = [
+        `BYE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        via,
+        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
+        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: 2 BYE`,
+        `Contact: ${tContact}`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- UAC: Send INVITE — SBC will handle 302 redirect transparently -->\n`;
+      uac += sendBlock(s.sdp ? withSDP(invHdrs, cfg.codecs) : invHdrs, 500) + `\n`;
+      uac += `  <recv response="100" optional="true"/>\n`;
+      uac += `  <recv response="180" optional="true"/>\n`;
+      uac += `  <recv response="200" rtd="true"/>\n\n`;
+      uac += sendBlock(ackHdrs) + `\n`;
+      uac += `\n  <!-- Hold call then BYE -->\n`;
+      uac += `  <pause milliseconds="${cfg.duration}"/>\n\n`;
+      uac += sendBlock(byeHdrs, 500) + `\n`;
+      uac += `  <recv response="200" crlf="true"/>\n`;
+
+      // ── UAS side: two-phase scenario ──
+      // Phase 1: Receive first INVITE from SBC → send 100 → send 302 → recv ACK
+      const h100_p1 = [
+        `SIP/2.0 100 Trying`,
+        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+        `[last_Call-ID:]`, `[last_CSeq:]`,
+        `Content-Length: 0`,
+      ];
+      const h302 = [
+        `SIP/2.0 302 Moved Temporarily`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Contact: <${cfg.redirect}>`,
+        `Content-Length: 0`,
+      ];
+      // Phase 2: Receive re-INVITE from SBC → send 100 → 180 → 200 → recv ACK → BYE → 200
+      const h100_p2 = [
+        `SIP/2.0 100 Trying`,
+        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+        `[last_Call-ID:]`, `[last_CSeq:]`,
+        `Content-Length: 0`,
+      ];
+      const h180_p2 = [
+        `SIP/2.0 180 Ringing`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Contact: ${tContact}`,
+        `Content-Length: 0`,
+      ];
+      const h200base_p2 = [
+        `SIP/2.0 200 OK`,
+        `[last_Via:]`,
+        `[last_From:]`,
+        `[last_To:];tag=[call_number]`,
+        `[last_Call-ID:]`,
+        `[last_CSeq:]`,
+        `Contact: ${tContact}`,
+        ...(s.sdp ? [`Content-Type: application/sdp`, `Content-Length: [len]`] : [`Content-Length: 0`]),
+      ];
+      const bye200_p2 = [
+        `SIP/2.0 200 OK`,
+        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+        `[last_Call-ID:]`, `[last_CSeq:]`,
+        `Content-Length: 0`,
+      ];
+
+      uas += `\n  <!-- ═══ PHASE 1: Initial INVITE from SBC — respond with 302 ═══ -->\n`;
+      uas += `  <recv request="INVITE" crlf="true"/>\n`;
+      uas += sendBlock(h100_p1) + `\n`;
+      uas += sendBlock(h302) + `\n`;
+      uas += `  <!-- SBC sends ACK to close the 302 transaction -->\n`;
+      uas += `  <recv request="ACK" crlf="true"/>\n`;
+
+      uas += `\n  <!-- ═══ PHASE 2: SBC re-INVITEs to redirect target ═══ -->\n`;
+      uas += `  <recv request="INVITE" crlf="true"/>\n`;
+      uas += sendBlock(h100_p2) + `\n`;
+      uas += sendBlock(h180_p2) + `\n`;
+      uas += sendBlock(s.sdp ? withSDP(h200base_p2, cfg.codecs) : h200base_p2, 500) + `\n`;
+      uas += `  <recv request="ACK" crlf="true"/>\n`;
+      uas += `\n  <!-- Wait for BYE from SBC -->\n`;
+      uas += `  <recv request="BYE"/>\n`;
+      uas += sendBlock(bye200_p2) + `\n`;
+    }
     else if (s.type === 'MEDIA') {
       const blk = `\n  <!-- Step ${n}: Play PCAP audio -->\n  <nop>\n    <action>\n      <exec play_pcap_audio="media.pcap"/>\n    </action>\n  </nop>\n`;
       uac += blk; uas += blk;
@@ -1605,10 +1742,11 @@ function renderCanvas() {
       ? `<button class="sdp-pill ${s.sdp?'sdp-on':'sdp-off'}" onclick="toggleSDP(${i})">SDP:${s.sdp?'ON':'OFF'}</button>`
       : '';
 
-    const meta = s.type==='PAUSE'  ? cfg_pauseDur()+'ms' :
-                 s.type==='MEDIA'  ? 'media.pcap' :
-                 s.type==='PRACK'  ? '[next_url]' :
-                 s.type==='BYE'    ? '[next_url]' : '';
+    const meta = s.type==='PAUSE'     ? cfg_pauseDur()+'ms' :
+                 s.type==='MEDIA'     ? 'media.pcap' :
+                 s.type==='PRACK'     ? '[next_url]' :
+                 s.type==='BYE'       ? '[next_url]' :
+                 s.type==='EGRESS302' ? 'Phase1:302 · Phase2:full call' : '';
 
     card.innerHTML = `
       <span class="step-num">${i+1}</span>

@@ -358,6 +358,58 @@ body {
 .transport-opt.active-tcp { border-color: var(--green);  color: var(--green);  background: var(--green-dim); }
 .transport-opt.active-tls { border-color: var(--purple); color: var(--purple); background: rgba(167,139,250,0.1); }
 
+/* ── QUICK HEADER CHIPS ── */
+.hdr-chip {
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  padding: 3px 8px; border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text2);
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.hdr-chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+.hdr-chip.active { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+
+/* ── EDIT BUTTON ON STEP CARD ── */
+.edit-btn {
+  background: transparent; border: 1px solid var(--border2);
+  color: var(--muted); cursor: pointer;
+  font-size: 10px; padding: 2px 5px;
+  border-radius: 3px; transition: 0.12s; line-height: 1;
+}
+.edit-btn:hover, .edit-btn.active { color: var(--amber); border-color: var(--amber); background: rgba(245,158,11,0.08); }
+
+/* ── STEP INLINE EDITOR ── */
+.step-editor {
+  background: rgba(245,158,11,0.04);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin-bottom: 4px;
+  animation: edIn 0.15s ease;
+}
+@keyframes edIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+.ed-title {
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  color: var(--amber); margin-bottom: 8px; letter-spacing: 0.5px;
+}
+.ed-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+}
+.ed-lbl {
+  font-family: var(--mono); font-size: 8px; color: var(--muted);
+  min-width: 72px; text-align: right; flex-shrink: 0;
+}
+.ed-inp {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--mono); font-size: 9px;
+  padding: 3px 6px; border-radius: 4px; outline: none; transition: 0.12s;
+}
+.ed-inp:focus { border-color: var(--amber); }
+.ed-hint {
+  font-family: var(--mono); font-size: 7px; color: var(--dim);
+  margin-top: 6px; line-height: 1.5;
+}
+
 /* ── CODEC CHECKBOXES ── */
 .codec-item {
   display: flex; align-items: center; gap: 8px;
@@ -695,7 +747,7 @@ body {
 
         <button class="preset-btn" onclick="loadPreset('basic')">
           <div class="preset-icon" style="background:rgba(59,130,246,0.15);color:var(--blue)">▶</div>
-          <div><div style="color:var(--text);font-weight:600">Basic Call</div><div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 100 · 180 · 200 · BYE</div></div>
+          <div><div style="color:var(--text);font-weight:600">Basic Call</div><div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 100 · 180 · PRACK · 200 · ACK · BYE</div></div>
         </button>
 
         <button class="preset-btn" onclick="loadPreset('early')">
@@ -739,7 +791,8 @@ body {
           <button class="comp-btn c-180"      onclick="addStep('180')">180 RINGING<br><span style="font-size:7px;font-weight:400;color:var(--muted)">SDP optional</span></button>
           <button class="comp-btn c-183"      onclick="addStep('183')">183 PROGRESS<br><span style="font-size:7px;font-weight:400;color:var(--muted)">100rel + SDP</span></button>
           <button class="comp-btn c-prack"    onclick="addStep('PRACK')">PRACK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">→ [next_url]</span></button>
-          <button class="comp-btn c-200"      onclick="addStep('200')">200 OK + ACK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ fresh Via</span></button>
+          <button class="comp-btn c-200"      onclick="addStep('200')">200 OK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">UAS sends</span></button>
+          <button class="comp-btn" style="color:#86efac;border-left-color:#86efac" onclick="addStep('ACK')">ACK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">UAC sends</span></button>
           <button class="comp-btn c-bye"      onclick="addStep('BYE')">BYE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ duration pause</span></button>
           <button class="comp-btn c-cancel"   onclick="addStep('CANCEL')">CANCEL<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ 487 ACK</span></button>
           <button class="comp-btn c-302"      onclick="addStep('302')">302 REDIRECT<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Moved Temp</span></button>
@@ -773,8 +826,19 @@ body {
         </div>
 
         <div class="sec-hdr" style="margin-top:4px">Global Header Injection</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px" id="hdrChips">
+          <button class="hdr-chip" onclick="addHeaderChip('P-Asserted-Identity: &lt;sip:+NUMBER@DOMAIN&gt;')">PAI</button>
+          <button class="hdr-chip" onclick="addHeaderChip('P-Called-Party-ID: &lt;sip:+NUMBER@DOMAIN&gt;')">P-Called</button>
+          <button class="hdr-chip" onclick="addHeaderChip('P-Charge-Info: &lt;sip:+NUMBER@DOMAIN&gt;')">P-Charge</button>
+          <button class="hdr-chip" onclick="addHeaderChip('Diversion: &lt;sip:+NUMBER@DOMAIN&gt;;reason=unconditional')">Diversion</button>
+          <button class="hdr-chip" onclick="addHeaderChip('History-Info: &lt;sip:+NUMBER@DOMAIN&gt;;index=1')">History-Info</button>
+          <button class="hdr-chip" onclick="addHeaderChip('Remote-Party-ID: &lt;sip:+NUMBER@DOMAIN&gt;;party=calling')">RPID</button>
+          <button class="hdr-chip" onclick="addHeaderChip('Privacy: none')">Privacy</button>
+          <button class="hdr-chip" onclick="addHeaderChip('User-Agent: RibbonSBC/12.0')">User-Agent</button>
+          <button class="hdr-chip" onclick="addHeaderChip('X-Ribbon-CustomerID: VALUE')">X-Customer</button>
+        </div>
         <div class="field">
-          <textarea id="customHeaders" oninput="updateUI()" placeholder="X-Custom-Header: value&#10;P-Charge-Info: sip:1234@domain"></textarea>
+          <textarea id="customHeaders" oninput="updateUI()" placeholder="Click chips above or type headers here&#10;X-Custom-Header: value"></textarea>
         </div>
 
         <div class="sec-hdr" style="margin-top:4px">Pause Duration (PAUSE step)</div>
@@ -916,9 +980,9 @@ let transport = 'UDP';
 const COLORS = {
   REGISTER:'#f472b6', INVITE:'#3b82f6', '100':'#4d6690',
   '180':'#38bdf8',    '183':'#f59e0b',  PRACK:'#a78bfa',
-  '200':'#22c55e',    BYE:'#ef4444',    CANCEL:'#f97316',
-  '302':'#f97316',    '4xx':'#f87171',  '5xx':'#fb923c',
-  EGRESS302:'#22c55e', MEDIA:'#818cf8', PAUSE:'#4d6690'
+  '200':'#22c55e',    ACK:'#86efac',    BYE:'#ef4444',
+  CANCEL:'#f97316',   '302':'#f97316',  '4xx':'#f87171',
+  '5xx':'#fb923c',    EGRESS302:'#22c55e', MEDIA:'#818cf8', PAUSE:'#4d6690'
 };
 
 // ═══════════════════════════════════════════
@@ -973,9 +1037,9 @@ function noSdp() { return 'Content-Length: 0'; }
 //  PRESETS
 // ═══════════════════════════════════════════
 const PRESETS = {
-  basic:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'180',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
-  early:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
-  teams:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'BYE',sdp:false}],
+  basic:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'180',sdp:false},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'ACK',sdp:false},{type:'BYE',sdp:false}],
+  early:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'ACK',sdp:false},{type:'BYE',sdp:false}],
+  teams:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'ACK',sdp:false},{type:'BYE',sdp:false}],
   register:  [{type:'REGISTER',sdp:false}],
   redirect:  [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'302',sdp:false}],
   egress302: [{type:'EGRESS302',sdp:true}],
@@ -1070,8 +1134,14 @@ function validate() {
   const has = t => steps.some(s => s.type===t);
   if (has('183') && !has('PRACK'))
     warns.push('⚠  183 without PRACK — UAS sends Require:100rel but UAC never acknowledges');
-  if (has('PRACK') && !has('183'))
-    warns.push('⚠  PRACK without 183 — nothing to acknowledge');
+  if (has('180') && !has('PRACK'))
+    warns.push('⚠  180 without PRACK — Ribbon SBC sends Require:100rel in 180, UAC must PRACK');
+  if (has('PRACK') && !has('183') && !has('180'))
+    warns.push('⚠  PRACK without 180 or 183 — nothing to acknowledge');
+  if (has('200') && !has('ACK'))
+    warns.push('⚠  200 OK without ACK — add ACK step after 200');
+  if (has('ACK') && !has('200'))
+    warns.push('⚠  ACK without 200 OK — ACK must follow a 200');
   if (has('INVITE') && !has('BYE') && !has('302') && !has('CANCEL') && !has('4xx') && !has('5xx') && !has('EGRESS302'))
     warns.push('⚠  INVITE has no teardown — add BYE, CANCEL, 302, 4xx, or 5xx');
   if (has('BYE') && !has('200'))
@@ -1138,9 +1208,10 @@ function viaLine(cfg) {
 
 function sendBlock(sipLines, retrans) {
   const retransAttr = retrans ? ` retrans="${retrans}"` : '';
-  // blank line before AND after SIP content — matches proven working format
-  const body = '\n' + sipLines.join('\n') + '\n';
-  return `  <send${retransAttr}>\n<![CDATA[${body}\n]]>\n  </send>`;
+  // SIPp CDATA format: each SIP line at column 0, blank line before content, blank line before ]]>
+  const lines = sipLines.filter(l => l != null);
+  const body = lines.join('\n');
+  return `  <send${retransAttr}>\n    <![CDATA[\n\n${body}\n\n    ]]>\n  </send>`;
 }
 
 function sdpLines(codecs) {
@@ -1175,17 +1246,24 @@ function generateXML(cfg) {
 
   steps.forEach((s, i) => {
     const n = i + 1;
+    const ov = s.overrides || {};
+    // Per-step override helper — falls back to global tContact
+    const ovContact = ov.contact || tContact;
+    const ovFrom    = ov.from    ? `<${ov.from}>;tag=[call_number]` : `<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`;
+    const ovTo      = ov.to      ? `<${ov.to}>` : `<sip:[service]@[remote_ip]:[remote_port]>`;
+    const ovReason  = ov.reason  || null;
+    const ovRack    = ov.rack    || `[last_RSeq] [last_CSeq_number] INVITE`;
 
     // ── REGISTER ──
     if (s.type === 'REGISTER') {
       const regHdrs1 = [
         `REGISTER sip:[remote_ip] SIP/2.0`,
         via,
-        `From: sip:sipp@[local_ip]:[local_port];tag=[call_number]`,
+        `From: ${ovFrom}`,
         `To: sip:[service]@[remote_ip]`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 REGISTER`,
-        `Contact: ${tContact}`,
+        `CSeq: [cseq] REGISTER`,
+        `Contact: ${ovContact}`,
         `Expires: 3600`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
@@ -1193,12 +1271,12 @@ function generateXML(cfg) {
       const regHdrs2 = [
         `REGISTER sip:[remote_ip] SIP/2.0`,
         via,
-        `From: sip:sipp@[local_ip]:[local_port];tag=[call_number]`,
+        `From: ${ovFrom}`,
         `To: sip:[service]@[remote_ip]`,
         `[last_Call-ID:]`,
-        `CSeq: 2 REGISTER`,
+        `CSeq: [cseq] REGISTER`,
         `[authentication]`,
-        `Contact: ${tContact}`,
+        `Contact: ${ovContact}`,
         `Expires: 3600`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
@@ -1216,7 +1294,7 @@ function generateXML(cfg) {
         `[last_To:];tag=[call_number]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `WWW-Authenticate: Digest realm="[remote_ip]", nonce="[authentication]"`,
+        `WWW-Authenticate: Digest realm="[remote_ip]", nonce="[pid]SIPpNonce[call_number]"`,
         `Content-Length: 0`,
       ];
       const reg200 = [
@@ -1226,7 +1304,7 @@ function generateXML(cfg) {
         `[last_To:]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `Contact: ${tContact}`,
+        `Contact: ${ovContact}`,
         `Expires: 3600`,
         `Content-Length: 0`,
       ];
@@ -1242,11 +1320,11 @@ function generateXML(cfg) {
       const invHdrs = [
         `INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>`,
+        `From: ${ovFrom}`,
+        `To: ${ovTo}`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 INVITE`,
-        `Contact: ${tContact}`,
+        `CSeq: [cseq] INVITE`,
+        `Contact: ${ovContact}`,
         `Supported: 100rel, timer`,
         `Max-Forwards: 70`,
         ...customHdrLines,
@@ -1283,8 +1361,8 @@ function generateXML(cfg) {
 
     // ── 180 RINGING ──
     else if (s.type === '180') {
-      uac += `\n  <!-- Step ${n}: Receive 180 Ringing -->\n`;
-      uac += `  <recv response="180" optional="true"/>\n`;
+      uac += `\n  <!-- Step ${n}: Receive 180 Ringing (mandatory - Ribbon always sends 180 with Require:100rel) -->\n`;
+      uac += `  <recv response="180" rrs="true"/>\n`;
 
       const h180base = [
         `SIP/2.0 180 Ringing`,
@@ -1293,7 +1371,9 @@ function generateXML(cfg) {
         `[last_To:];tag=[call_number]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `Contact: ${tContact}`,
+        `RSeq: [rseq]`,
+        `Require: 100rel`,
+        `Contact: ${ovContact}`,
         ...(s.sdp
           ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
           : [`Content-Length: 0`]
@@ -1305,8 +1385,8 @@ function generateXML(cfg) {
 
     // ── 183 SESSION PROGRESS ──
     else if (s.type === '183') {
-      uac += `\n  <!-- Step ${n}: Receive 183 Session Progress -->\n`;
-      uac += `  <recv response="183" optional="true"/>\n`;
+      uac += `\n  <!-- Step ${n}: Receive 183 Session Progress (mandatory - rrs=true for PRACK next_url) -->\n`;
+      uac += `  <recv response="183" rrs="true"/>\n`;
 
       const h183base = [
         `SIP/2.0 183 Session Progress`,
@@ -1317,7 +1397,7 @@ function generateXML(cfg) {
         `[last_CSeq:]`,
         `RSeq: [rseq]`,
         `Require: 100rel`,
-        `Contact: ${tContact}`,
+        `Contact: ${ovContact}`,
         ...(s.sdp
           ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
           : [`Content-Length: 0`]
@@ -1332,11 +1412,11 @@ function generateXML(cfg) {
       const prackHdrs = [
         `PRACK [next_url] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `From: ${ovFrom}`,
+        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
         `Call-ID: [call_id]`,
-        `CSeq: 2 PRACK`,
-        `RAck: [last_RSeq] [last_CSeq_number] INVITE`,
+        `CSeq: [cseq] PRACK`,
+        `RAck: ${ovRack}`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
       ];
@@ -1358,23 +1438,10 @@ function generateXML(cfg) {
       uas += sendBlock(prack200) + `\n`;
     }
 
-    // ── 200 OK + ACK ──
+    // ── 200 OK (UAS sends, UAC receives — rrs=true to populate [next_url] for ACK) ──
     else if (s.type === '200') {
-      // ACK: fresh Via+branch, [peer_tag_param] for To tag, CSeq 1 ACK
-      const ackHdrs = [
-        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
-        via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: 1 ACK`,
-        `Contact: ${tContact}`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Step ${n}: Receive 200 OK, send ACK -->\n`;
-      uac += `  <recv response="200" rtd="true"/>\n\n`;
-      uac += sendBlock(ackHdrs) + `\n`;
+      uac += `\n  <!-- Step ${n}: Receive 200 OK (rrs captures Contact for ACK/BYE) -->\n`;
+      uac += `  <recv response="200" rrs="true" crlf="true"/>\n`;
 
       const ok200base = [
         `SIP/2.0 200 OK`,
@@ -1383,29 +1450,49 @@ function generateXML(cfg) {
         `[last_To:];tag=[call_number]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `Contact: ${tContact}`,
+        `Contact: ${ovContact}`,
         ...(s.sdp
           ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
           : [`Content-Length: 0`]
         ),
       ];
-      uas += `\n  <!-- Step ${n}: Send 200 OK, receive ACK -->\n`;
-      uas += sendBlock(s.sdp ? withSDP(ok200base, cfg.codecs) : ok200base, 500) + `\n\n`;
+      uas += `\n  <!-- Step ${n}: Send 200 OK -->\n`;
+      uas += sendBlock(s.sdp ? withSDP(ok200base, cfg.codecs) : ok200base, 500) + `\n`;
+    }
+
+    // ── ACK (UAC-only — sends ACK to [next_url] populated by preceding 200 rrs=true) ──
+    else if (s.type === 'ACK') {
+      const ackHdrs = [
+        `ACK [next_url] SIP/2.0`,
+        via,
+        `From: ${ovFrom}`,
+        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `Call-ID: [call_id]`,
+        `CSeq: [cseq] ACK`,
+        `Contact: ${ovContact}`,
+        `Max-Forwards: 70`,
+        `Content-Length: 0`,
+      ];
+      uac += `\n  <!-- Step ${n}: Send ACK -->\n`;
+      uac += sendBlock(ackHdrs) + `\n`;
+
+      // UAS: receives ACK after its 200 OK send
+      uas += `\n  <!-- Step ${n}: Receive ACK -->\n`;
       uas += `  <recv request="ACK" crlf="true"/>\n`;
     }
 
     // ── BYE ──
     else if (s.type === 'BYE') {
-      // BYE: fresh Via+branch, [peer_tag_param], CSeq 2 BYE
       const byeHdrs = [
-        `BYE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        `BYE [next_url] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `From: ${ovFrom}`,
+        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
         `Call-ID: [call_id]`,
-        `CSeq: 2 BYE`,
-        `Contact: ${tContact}`,
+        `CSeq: [cseq] BYE`,
+        `Contact: ${ovContact}`,
         `Max-Forwards: 70`,
+        ...(ovReason ? [`Reason: ${ovReason}`] : []),
         `Content-Length: 0`,
       ];
       const bye200 = [
@@ -1430,23 +1517,24 @@ function generateXML(cfg) {
 
     // ── CANCEL ──
     else if (s.type === 'CANCEL') {
+      const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
       const cancelHdrs = [
         `CANCEL sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>`,
+        `From: ${ovFrom}`,
+        `To: ${ovTo}`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 CANCEL`,
+        `CSeq: [cseq] CANCEL`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
       ];
       const ackFor487 = [
         `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>`,
+        `From: ${ovFrom}`,
+        `To: ${ovTo}`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 ACK`,
+        `CSeq: [cseq] ACK`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
       ];
@@ -1466,10 +1554,11 @@ function generateXML(cfg) {
       uac += `\n  <!-- Step ${n}: Send CANCEL -->\n`;
       uac += sendBlock(cancelHdrs, 500) + `\n\n`;
       uac += `  <recv response="200"/>\n`;
-      uac += `  <recv response="487" optional="true"/>\n`;
+      uac += `  <recv response="487"/>\n`;
       uac += sendBlock(ackFor487) + `\n`;
 
-      uas += `\n  <!-- Step ${n}: Receive CANCEL, send 200 + 487 -->\n`;
+      uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}receive CANCEL, send 200 + 487 -->\n`;
+      if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
       uas += `  <recv request="CANCEL"/>\n`;
       uas += sendBlock(cancel200) + `\n`;
       uas += sendBlock(inv487) + `\n`;
@@ -1477,27 +1566,24 @@ function generateXML(cfg) {
     }
 
     // ── 302 REDIRECT ──
-    // RFC 3261 §8.1.3.4: UAC receives 302, MUST send ACK to close transaction
-    // UAS must have received an INVITE before it can send any response
     else if (s.type === '302') {
+      const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
+      const redirDst = ov.redirectUri || cfg.redirect;
       const redir302 = [
         `SIP/2.0 302 Moved Temporarily`,
-        `[last_Via:]`,
-        `[last_From:]`,
+        `[last_Via:]`, `[last_From:]`,
         `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Contact: <${cfg.redirect}>`,
+        `[last_Call-ID:]`, `[last_CSeq:]`,
+        `Contact: <${redirDst}>`,
         `Content-Length: 0`,
       ];
-      // UAC: recv 302, then send mandatory ACK to close the transaction
       const ack302 = [
         `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `From: ${ovFrom}`,
+        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 ACK`,
+        `CSeq: [cseq] ACK`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
       ];
@@ -1505,71 +1591,73 @@ function generateXML(cfg) {
       uac += `  <recv response="302"/>\n`;
       uac += sendBlock(ack302) + `\n`;
 
-      // UAS: recv INVITE first, then send 302
-      uas += `\n  <!-- Step ${n}: Receive INVITE, send 302 Moved Temporarily -->\n`;
-      uas += `  <recv request="INVITE" crlf="true"/>\n`;
+      uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send 302 Moved Temporarily -->\n`;
+      if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
       uas += sendBlock(redir302) + `\n`;
-      uas += `  <!-- Receive mandatory ACK from UAC -->\n`;
       uas += `  <recv request="ACK" crlf="true"/>\n`;
     }
 
-    // ── 4xx CLIENT ERROR (UAS sends, UAC recvs and must ACK per RFC 3261 §17.1.1.3) ──
+    // ── 4xx CLIENT ERROR ──
     else if (s.type === '4xx') {
+      const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
+      const code4  = ov.code4xx   || '486';
+      const rsn4   = ov.reason4xx || 'Busy Here';
       const errAck4 = [
         `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `From: ${ovFrom}`,
+        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 ACK`,
+        `CSeq: [cseq] ACK`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
       ];
-      uac += `\n  <!-- Step ${n}: Receive 4xx error, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
-      uac += `  <recv response="4xx"/>\n`;
+      uac += `\n  <!-- Step ${n}: Receive ${code4}, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
+      uac += `  <recv response="${code4}"/>\n`;
       uac += sendBlock(errAck4) + `\n`;
 
       const h4xx = [
-        `SIP/2.0 486 Busy Here`,
-        `[last_Via:]`,
-        `[last_From:]`,
+        `SIP/2.0 ${code4} ${rsn4}`,
+        `[last_Via:]`, `[last_From:]`,
         `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
+        `[last_Call-ID:]`, `[last_CSeq:]`,
         `Content-Length: 0`,
       ];
-      uas += `\n  <!-- Step ${n}: Send 4xx, receive mandatory ACK -->\n`;
+      uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send ${code4} ${rsn4}, receive ACK -->\n`;
+      if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
       uas += sendBlock(h4xx) + `\n`;
       uas += `  <recv request="ACK" optional="true"/>\n`;
     }
 
-    // ── 5xx SERVER ERROR (UAS sends, UAC recvs and must ACK per RFC 3261 §17.1.1.3) ──
+    // ── 5xx SERVER ERROR ──
     else if (s.type === '5xx') {
+      const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
+      const code5  = ov.code5xx   || '503';
+      const retry5 = ov.retryAfter || '30';
       const errAck5 = [
         `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `From: ${ovFrom}`,
+        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 ACK`,
+        `CSeq: [cseq] ACK`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
       ];
-      uac += `\n  <!-- Step ${n}: Receive 5xx error, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
-      uac += `  <recv response="5xx"/>\n`;
+      uac += `\n  <!-- Step ${n}: Receive ${code5}, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
+      uac += `  <recv response="${code5}"/>\n`;
       uac += sendBlock(errAck5) + `\n`;
 
       const h5xx = [
-        `SIP/2.0 503 Service Unavailable`,
-        `[last_Via:]`,
-        `[last_From:]`,
+        `SIP/2.0 ${code5} Service Unavailable`,
+        `[last_Via:]`, `[last_From:]`,
         `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Retry-After: 30`,
+        `[last_Call-ID:]`, `[last_CSeq:]`,
+        `Retry-After: ${retry5}`,
         `Content-Length: 0`,
       ];
-      uas += `\n  <!-- Step ${n}: Send 5xx, receive mandatory ACK -->\n`;
+      uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send ${code5}, receive ACK -->\n`;
+      if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
       uas += sendBlock(h5xx) + `\n`;
       uas += `  <recv request="ACK" optional="true"/>\n`;
     }
@@ -1582,33 +1670,33 @@ function generateXML(cfg) {
       const invHdrs = [
         `INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>`,
+        `From: ${ovFrom}`,
+        `To: ${ovTo}`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 INVITE`,
-        `Contact: ${tContact}`,
+        `CSeq: [cseq] INVITE`,
+        `Contact: ${ovContact}`,
         `Supported: 100rel, timer`,
         `Max-Forwards: 70`,
         ...(s.sdp ? [`Content-Type: application/sdp`, `Content-Length: [len]`] : [`Content-Length: 0`]),
       ];
       const ackHdrs = [
-        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        `ACK [next_url] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `From: ${ovFrom}`,
+        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
         `Call-ID: [call_id]`,
-        `CSeq: 1 ACK`,
+        `CSeq: [cseq] ACK`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
       ];
       const byeHdrs = [
-        `BYE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        `BYE [next_url] SIP/2.0`,
         via,
-        `From: sip<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`,
-        `To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+        `From: ${ovFrom}`,
+        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
         `Call-ID: [call_id]`,
-        `CSeq: 2 BYE`,
-        `Contact: ${tContact}`,
+        `CSeq: [cseq] BYE`,
+        `Contact: ${ovContact}`,
         `Max-Forwards: 70`,
         `Content-Length: 0`,
       ];
@@ -1616,7 +1704,7 @@ function generateXML(cfg) {
       uac += sendBlock(s.sdp ? withSDP(invHdrs, cfg.codecs) : invHdrs, 500) + `\n`;
       uac += `  <recv response="100" optional="true"/>\n`;
       uac += `  <recv response="180" optional="true"/>\n`;
-      uac += `  <recv response="200" rtd="true"/>\n\n`;
+      uac += `  <recv response="200" rrs="true" crlf="true"/>\n\n`;
       uac += sendBlock(ackHdrs) + `\n`;
       uac += `\n  <!-- Hold call then BYE -->\n`;
       uac += `  <pause milliseconds="${cfg.duration}"/>\n\n`;
@@ -1655,7 +1743,7 @@ function generateXML(cfg) {
         `[last_To:];tag=[call_number]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `Contact: ${tContact}`,
+        `Contact: ${ovContact}`,
         `Content-Length: 0`,
       ];
       const h200base_p2 = [
@@ -1665,7 +1753,7 @@ function generateXML(cfg) {
         `[last_To:];tag=[call_number]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `Contact: ${tContact}`,
+        `Contact: ${ovContact}`,
         ...(s.sdp ? [`Content-Type: application/sdp`, `Content-Length: [len]`] : [`Content-Length: 0`]),
       ];
       const bye200_p2 = [
@@ -1686,7 +1774,7 @@ function generateXML(cfg) {
       uas += `  <recv request="INVITE" crlf="true"/>\n`;
       uas += sendBlock(h100_p2) + `\n`;
       uas += sendBlock(h180_p2) + `\n`;
-      uas += sendBlock(s.sdp ? withSDP(h200base_p2, cfg.codecs) : h200base_p2, 500) + `\n`;
+      uas += sendBlock(s.sdp ? withSDP(h200base_p2, cfg.codecs) : h200base_p2) + `\n`;
       uas += `  <recv request="ACK" crlf="true"/>\n`;
       uas += `\n  <!-- Wait for BYE from SBC -->\n`;
       uas += `  <recv request="BYE"/>\n`;
@@ -1699,7 +1787,7 @@ function generateXML(cfg) {
 
     // ── PAUSE ──
     else if (s.type === 'PAUSE') {
-      const dur = cfg.pauseDur || '2000';
+      const dur = ov.pauseMs || cfg.pauseDur || '2000';
       uac += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
       uas += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
     }
@@ -1713,6 +1801,98 @@ function generateXML(cfg) {
   uac += `\n</scenario>`;
   uas += `\n</scenario>`;
   return { uac, uas };
+}
+
+// ═══════════════════════════════════════════
+//  QUICK HEADER CHIPS (Point 3)
+// ═══════════════════════════════════════════
+function addHeaderChip(header) {
+  const decoded = header.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+  const ta = document.getElementById('customHeaders');
+  const current = ta.value.trim();
+  const headerName = decoded.split(':')[0].trim();
+  if (current.split('\n').some(l => l.startsWith(headerName))) {
+    ta.value = current.split('\n').filter(l => !l.startsWith(headerName)).join('\n');
+  } else {
+    ta.value = current ? current + '\n' + decoded : decoded;
+  }
+  updateUI();
+  document.querySelectorAll('.hdr-chip').forEach(c => {
+    const raw = c.getAttribute('onclick').replace(/^addHeaderChip\('|'\)$/g,'');
+    const dec = raw.replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    const name = dec.split(':')[0].trim();
+    c.classList.toggle('active', ta.value.split('\n').some(l => l.startsWith(name)));
+  });
+}
+
+// ═══════════════════════════════════════════
+//  STEP INLINE EDITOR (Point 4)
+// ═══════════════════════════════════════════
+let openEditorIdx = null;
+
+function getOv(i, key, def='') { return steps[i]?.overrides?.[key] ?? def; }
+function setOv(i, key, val)    {
+  if (!steps[i].overrides) steps[i].overrides = {};
+  steps[i].overrides[key] = val;
+  updateUI();
+}
+function toggleEditor(i) {
+  openEditorIdx = (openEditorIdx === i) ? null : i;
+  renderCanvas();
+}
+
+function edRow(i, label, key, placeholder='') {
+  const val = (getOv(i, key) || '').replace(/"/g,'&quot;');
+  return `<div class="ed-row">
+    <span class="ed-lbl">${label}</span>
+    <input class="ed-inp" value="${val}" placeholder="${placeholder}"
+      oninput="setOv(${i},'${key}',this.value)">
+  </div>`;
+}
+
+function buildEditor(i) {
+  const t = steps[i].type;
+  const rows = [];
+  if (t==='INVITE') {
+    rows.push(edRow(i,'From URI','from','sip:sipp@[local_ip]:[local_port]'));
+    rows.push(edRow(i,'To URI','to','sip:[service]@[remote_ip]'));
+    rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
+  }
+  if (t==='180'||t==='183') {
+    rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
+  }
+  if (t==='PRACK') {
+    rows.push(edRow(i,'RAck','rack','[last_RSeq] [last_CSeq_number] INVITE'));
+  }
+  if (t==='200') {
+    rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
+  }
+  if (t==='ACK') {
+    rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
+  }
+  if (t==='BYE') {
+    rows.push(edRow(i,'Reason','reason','SIP;cause=200;text="Normal Clearing"'));
+  }
+  if (t==='PAUSE') {
+    rows.push(edRow(i,'Duration ms','pauseMs','2000'));
+  }
+  if (t==='302') {
+    rows.push(edRow(i,'Contact URI','redirectUri','sip:forward@dest.com:5060'));
+  }
+  if (t==='4xx') {
+    rows.push(edRow(i,'Response Code','code4xx','486'));
+    rows.push(edRow(i,'Reason Phrase','reason4xx','Busy Here'));
+  }
+  if (t==='5xx') {
+    rows.push(edRow(i,'Response Code','code5xx','503'));
+    rows.push(edRow(i,'Retry-After (s)','retryAfter','30'));
+  }
+  if (!rows.length) return '';
+  return `<div class="step-editor">
+    <div class="ed-title">✎ Step ${i+1} · ${t} — Header Overrides</div>
+    ${rows.join('')}
+    <div class="ed-hint">Overrides apply to this step only. Leave blank to use global defaults.</div>
+  </div>`;
 }
 
 function renderCanvas() {
@@ -1738,24 +1918,46 @@ function renderCanvas() {
     card.className = 'step-card';
     card.style.borderLeftColor = color;
 
+    const isOpen = openEditorIdx === i;
+    const hasEditor = ['INVITE','180','183','PRACK','200','ACK','BYE','PAUSE','302','4xx','5xx'].includes(s.type);
+
     const sdpBtn = canSDP
-      ? `<button class="sdp-pill ${s.sdp?'sdp-on':'sdp-off'}" onclick="toggleSDP(${i})">SDP:${s.sdp?'ON':'OFF'}</button>`
+      ? `<button class="sdp-pill ${s.sdp?'sdp-on':'sdp-off'}" onclick="event.stopPropagation();toggleSDP(${i})">SDP:${s.sdp?'ON':'OFF'}</button>`
       : '';
 
-    const meta = s.type==='PAUSE'     ? cfg_pauseDur()+'ms' :
+    const meta = s.type==='PAUSE'     ? (getOv(i,'pauseMs') || cfg_pauseDur())+'ms' :
                  s.type==='MEDIA'     ? 'media.pcap' :
                  s.type==='PRACK'     ? '[next_url]' :
                  s.type==='BYE'       ? '[next_url]' :
+                 s.type==='ACK'       ? '[next_url]' :
+                 s.type==='302'       ? (getOv(i,'redirectUri') || '302 Redirect') :
+                 s.type==='4xx'       ? ((getOv(i,'code4xx') || '486') + ' ' + (getOv(i,'reason4xx') || 'Busy Here')) :
+                 s.type==='5xx'       ? ((getOv(i,'code5xx') || '503') + ' Service') :
+                 s.type==='REGISTER'  ? 'Digest Auth' :
                  s.type==='EGRESS302' ? 'Phase1:302 · Phase2:full call' : '';
 
     card.innerHTML = `
       <span class="step-num">${i+1}</span>
       <span class="step-badge" style="background:${color}1a;color:${color}">${s.type}</span>
       <span class="step-meta">${meta}</span>
-      <div class="step-actions">${sdpBtn}<button class="del-btn" onclick="removeStep(${i})">✕</button></div>`;
+      <div class="step-actions">
+        ${sdpBtn}
+        ${hasEditor ? `<button class="edit-btn${isOpen?' active':''}" onclick="event.stopPropagation();toggleEditor(${i})" title="Edit headers">✎</button>` : ''}
+        <button class="del-btn" onclick="event.stopPropagation();removeStep(${i})">✕</button>
+      </div>`;
 
     makeDraggable(card, i);
     canvas.appendChild(card);
+
+    // Inline editor panel
+    if (isOpen && hasEditor) {
+      const editorHtml = buildEditor(i);
+      if (editorHtml) {
+        const edDiv = document.createElement('div');
+        edDiv.innerHTML = editorHtml;
+        canvas.appendChild(edDiv.firstElementChild);
+      }
+    }
 
     if (i < steps.length-1) {
       const a = document.createElement('div');

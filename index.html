@@ -1252,7 +1252,7 @@ function generateXML(cfg) {
     const ovFrom    = ov.from    ? `<${ov.from}>;tag=[call_number]` : `<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`;
     const ovTo      = ov.to      ? `<${ov.to}>` : `<sip:[service]@[remote_ip]:[remote_port]>`;
     const ovReason  = ov.reason  || null;
-    const ovRack    = ov.rack    || `1 1 INVITE`;
+    const ovRack    = ov.rack    || `[last_RSeq] 1 INVITE`;
 
     // ── REGISTER ──
     if (s.type === 'REGISTER') {
@@ -1853,7 +1853,7 @@ function buildEditor(i) {
     rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
   }
   if (t==='PRACK') {
-    rows.push(edRow(i,'RAck','rack','1 1 INVITE'));
+    rows.push(edRow(i,'RAck','rack','[last_RSeq] 1 INVITE'));
   }
   if (t==='200') {
     rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));

@@ -1226,9 +1226,9 @@ function withSDP(headers, codecs) {
 function generateXML(cfg) {
   // Always use [transport] — SIPp resolves at runtime via -t flag
   const via     = `Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]`;
-  const contact = `sip:sipp@[local_ip]:[local_port]`;
+  const contact = `<sip:sipp@[local_ip]:[local_port]>`;
   const tContact = cfg.transport === 'TLS'
-    ? `sip:sipp@${cfg.sbcFqdn}:5061;transport=tls`
+    ? `<sip:sipp@${cfg.sbcFqdn}:5061;transport=tls>`
     : contact;
 
   const customHdrLines = cfg.customHdrs
@@ -1294,7 +1294,7 @@ function generateXML(cfg) {
         `[last_To:];tag=[call_number]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `WWW-Authenticate: Digest realm="[remote_ip]", nonce="[pid]SIPpNonce[call_number]"`,
+        `WWW-Authenticate: Digest realm="[remote_ip]", nonce="[authentication]"`,
         `Content-Length: 0`,
       ];
       const reg200 = [
@@ -1371,8 +1371,6 @@ function generateXML(cfg) {
         `[last_To:];tag=[call_number]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `RSeq: [rseq]`,
-        `Require: 100rel`,
         `Contact: ${ovContact}`,
         ...(s.sdp
           ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
@@ -1395,7 +1393,7 @@ function generateXML(cfg) {
         `[last_To:];tag=[call_number]`,
         `[last_Call-ID:]`,
         `[last_CSeq:]`,
-        `RSeq: [rseq]`,
+        `RSeq: 1`,
         `Require: 100rel`,
         `Contact: ${ovContact}`,
         ...(s.sdp
@@ -1517,7 +1515,6 @@ function generateXML(cfg) {
 
     // ── CANCEL ──
     else if (s.type === 'CANCEL') {
-      const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
       const cancelHdrs = [
         `CANCEL sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
         via,
@@ -1529,7 +1526,7 @@ function generateXML(cfg) {
         `Content-Length: 0`,
       ];
       const ackFor487 = [
-        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        `ACK [next_url] SIP/2.0`,
         via,
         `From: ${ovFrom}`,
         `To: ${ovTo}`,
@@ -1557,8 +1554,7 @@ function generateXML(cfg) {
       uac += `  <recv response="487"/>\n`;
       uac += sendBlock(ackFor487) + `\n`;
 
-      uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}receive CANCEL, send 200 + 487 -->\n`;
-      if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
+      uas += `\n  <!-- Step ${n}: Receive CANCEL, send 200 + 487 -->\n`;
       uas += `  <recv request="CANCEL"/>\n`;
       uas += sendBlock(cancel200) + `\n`;
       uas += sendBlock(inv487) + `\n`;
@@ -1567,7 +1563,6 @@ function generateXML(cfg) {
 
     // ── 302 REDIRECT ──
     else if (s.type === '302') {
-      const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
       const redirDst = ov.redirectUri || cfg.redirect;
       const redir302 = [
         `SIP/2.0 302 Moved Temporarily`,
@@ -1578,7 +1573,7 @@ function generateXML(cfg) {
         `Content-Length: 0`,
       ];
       const ack302 = [
-        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        `ACK [next_url] SIP/2.0`,
         via,
         `From: ${ovFrom}`,
         `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
@@ -1591,19 +1586,18 @@ function generateXML(cfg) {
       uac += `  <recv response="302"/>\n`;
       uac += sendBlock(ack302) + `\n`;
 
-      uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send 302 Moved Temporarily -->\n`;
-      if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
+      uas += `\n  <!-- Step ${n}: Receive INVITE, send 302 Moved Temporarily -->\n`;
+      uas += `  <recv request="INVITE" crlf="true"/>\n`;
       uas += sendBlock(redir302) + `\n`;
       uas += `  <recv request="ACK" crlf="true"/>\n`;
     }
 
     // ── 4xx CLIENT ERROR ──
     else if (s.type === '4xx') {
-      const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
       const code4  = ov.code4xx   || '486';
       const rsn4   = ov.reason4xx || 'Busy Here';
       const errAck4 = [
-        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        `ACK [next_url] SIP/2.0`,
         via,
         `From: ${ovFrom}`,
         `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
@@ -1623,19 +1617,17 @@ function generateXML(cfg) {
         `[last_Call-ID:]`, `[last_CSeq:]`,
         `Content-Length: 0`,
       ];
-      uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send ${code4} ${rsn4}, receive ACK -->\n`;
-      if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
+      uas += `\n  <!-- Step ${n}: Send ${code4} ${rsn4}, receive ACK -->\n`;
       uas += sendBlock(h4xx) + `\n`;
       uas += `  <recv request="ACK" optional="true"/>\n`;
     }
 
     // ── 5xx SERVER ERROR ──
     else if (s.type === '5xx') {
-      const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
       const code5  = ov.code5xx   || '503';
       const retry5 = ov.retryAfter || '30';
       const errAck5 = [
-        `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+        `ACK [next_url] SIP/2.0`,
         via,
         `From: ${ovFrom}`,
         `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
@@ -1656,8 +1648,7 @@ function generateXML(cfg) {
         `Retry-After: ${retry5}`,
         `Content-Length: 0`,
       ];
-      uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send ${code5}, receive ACK -->\n`;
-      if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
+      uas += `\n  <!-- Step ${n}: Send ${code5}, receive ACK -->\n`;
       uas += sendBlock(h5xx) + `\n`;
       uas += `  <recv request="ACK" optional="true"/>\n`;
     }
@@ -1930,10 +1921,6 @@ function renderCanvas() {
                  s.type==='PRACK'     ? '[next_url]' :
                  s.type==='BYE'       ? '[next_url]' :
                  s.type==='ACK'       ? '[next_url]' :
-                 s.type==='302'       ? (getOv(i,'redirectUri') || '302 Redirect') :
-                 s.type==='4xx'       ? ((getOv(i,'code4xx') || '486') + ' ' + (getOv(i,'reason4xx') || 'Busy Here')) :
-                 s.type==='5xx'       ? ((getOv(i,'code5xx') || '503') + ' Service') :
-                 s.type==='REGISTER'  ? 'Digest Auth' :
                  s.type==='EGRESS302' ? 'Phase1:302 · Phase2:full call' : '';
 
     card.innerHTML = `

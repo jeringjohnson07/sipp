@@ -1899,7 +1899,7 @@
             uac += `  <recv response="180" rrs="true">\n    <action>\n      <ereg regexp="[0-9]+" search_in="hdr" header="RSeq:" assign_to="1"/>\n      <ereg regexp="[0-9]+" search_in="hdr" header="CSeq:" assign_to="2"/>\n    </action>\n  </recv>\n`;
           } else {
             uac += `\n  <!-- Step ${n}: Receive 180 Ringing -->\n`;
-            uac += `  <recv response="180" optional="true"/>\n`;
+            uac += `  <recv response="180"/>\n`;
           }
 
           // UAS: use hardcoded RSeq: 1 — [rseq] is NOT a valid SIPp keyword
@@ -1929,7 +1929,7 @@
             uac += `  <recv response="183" rrs="true">\n    <action>\n      <ereg regexp="[0-9]+" search_in="hdr" header="RSeq:" assign_to="1"/>\n      <ereg regexp="[0-9]+" search_in="hdr" header="CSeq:" assign_to="2"/>\n    </action>\n  </recv>\n`;
           } else {
             uac += `\n  <!-- Step ${n}: Receive 183 Session Progress -->\n`;
-            uac += `  <recv response="183" optional="true"/>\n`;
+            uac += `  <recv response="183"/>\n`;
           }
 
           // UAS: use hardcoded RSeq: 1 — [rseq] is NOT a valid SIPp keyword

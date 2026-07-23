@@ -1755,8 +1755,6 @@
 
     function generateXML(cfg) {
       const hasPrack = cfg.enablePrack;
-      let cseq = 1;
-      let invCseq = 1;
       // Always use [transport] — SIPp resolves at runtime via -t flag
       const via = `Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]`;
       const contact = `sip:sipp@[local_ip]:[local_port]`;
@@ -1785,7 +1783,7 @@
         const ovFrom = ov.from ? `<${ov.from}>;tag=[call_number]` : `<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`;
         const ovTo = ov.to ? `<${ov.to}>` : `<sip:[service]@[remote_ip]:[remote_port]>`;
         const ovReason = ov.reason || null;
-        const ovRack = ov.rack || `[$rseq_val] [$cseq_val] INVITE`;  // rseq_val=RSeq, cseq_val=CSeq captured via ereg on recv 180/183
+        const ovRack = ov.rack || `1 1 INVITE`;  // Hardcoded: RSeq=1 CSeq=1 since we control UAS
 
         // ── REGISTER ──
         if (s.type === 'REGISTER') {
@@ -1856,7 +1854,7 @@
             `From: ${ovFrom}`,
             `To: ${ovTo}`,
             `Call-ID: [call_id]`,
-            `CSeq: ${invCseq = cseq++} INVITE`,
+            `CSeq: [cseq] INVITE`,
             `Contact: ${ovContact}`,
             hasPrack ? `Supported: 100rel, timer` : `Supported: timer`,
             `Max-Forwards: 70`,
@@ -1896,7 +1894,7 @@
         else if (s.type === '180') {
           if (hasPrack) {
             uac += `\n  <!-- Step ${n}: Receive 180 Ringing (with 100rel for PRACK) -->\n`;
-            uac += `  <recv response="180" rrs="true">\n    <action>\n      <ereg regexp="[0-9]+" search_in="hdr" header="RSeq:" assign_to="rseq_val"/>\n      <ereg regexp="[0-9]+" search_in="hdr" header="CSeq:" assign_to="cseq_val"/>\n    </action>\n  </recv>\n`;
+            uac += `  <recv response="180" rrs="true"/>\n`;
           } else {
             uac += `\n  <!-- Step ${n}: Receive 180 Ringing -->\n`;
             uac += `  <recv response="180"/>\n`;
@@ -1926,7 +1924,7 @@
         else if (s.type === '183') {
           if (hasPrack) {
             uac += `\n  <!-- Step ${n}: Receive 183 Session Progress (with 100rel for PRACK) -->\n`;
-            uac += `  <recv response="183" rrs="true">\n    <action>\n      <ereg regexp="[0-9]+" search_in="hdr" header="RSeq:" assign_to="rseq_val"/>\n      <ereg regexp="[0-9]+" search_in="hdr" header="CSeq:" assign_to="cseq_val"/>\n    </action>\n  </recv>\n`;
+            uac += `  <recv response="183" rrs="true"/>\n`;
           } else {
             uac += `\n  <!-- Step ${n}: Receive 183 Session Progress -->\n`;
             uac += `  <recv response="183"/>\n`;
@@ -1963,7 +1961,7 @@
             `From: ${ovFrom}`,
             `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
             `Call-ID: [call_id]`,
-            `CSeq: ${cseq++} PRACK`,
+            `CSeq: [cseq] PRACK`,
             `RAck: ${rackValue}`,
             `Max-Forwards: 70`,
             `Content-Length: 0`,
@@ -1997,7 +1995,7 @@
             `[last_From:]`,
             `[last_To:];tag=[call_number]`,
             `[last_Call-ID:]`,
-            `CSeq: ${invCseq} INVITE`,
+            `[last_CSeq:]`,
             `Contact: ${ovContact}`,
             ...(s.sdp
               ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
@@ -2016,7 +2014,7 @@
             `From: ${ovFrom}`,
             `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
             `Call-ID: [call_id]`,
-            `CSeq: ${invCseq} ACK`,
+            `CSeq: [cseq] ACK`,
             `Contact: ${ovContact}`,
             `Max-Forwards: 70`,
             `Content-Length: 0`,
@@ -2037,7 +2035,7 @@
             `From: ${ovFrom}`,
             `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
             `Call-ID: [call_id]`,
-            `CSeq: ${cseq++} BYE`,
+            `CSeq: [cseq] BYE`,
             `Contact: ${ovContact}`,
             `Max-Forwards: 70`,
             ...(ovReason ? [`Reason: ${ovReason}`] : []),

@@ -1,2116 +1,2670 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIPp Architect — Ribbon SBC Edition</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-/* ════════════════════════════════════════════
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIPp Architect — Ribbon SBC Edition</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ════════════════════════════════════════════
    TERMINAL PRO — Design Tokens
    Palette: deep navy base, cool slate surfaces,
    electric blue primary, crisp white type.
    Inspired by VS Code + JetBrains IDE chrome.
 ════════════════════════════════════════════ */
-:root {
-  --bg:         #0e1117;
-  --titlebar:   #090d13;
-  --sidebar:    #111827;
-  --surface:    #161d2e;
-  --surface2:   #1c2539;
-  --surface3:   #202b3f;
-  --border:     #1f2d45;
-  --border2:    #263650;
-  --border3:    #2e4268;
+    :root {
+      --bg: #0e1117;
+      --titlebar: #090d13;
+      --sidebar: #111827;
+      --surface: #161d2e;
+      --surface2: #1c2539;
+      --surface3: #202b3f;
+      --border: #1f2d45;
+      --border2: #263650;
+      --border3: #2e4268;
 
-  --text:       #e2eaf8;
-  --text2:      #8ba3c7;
-  --muted:      #4d6690;
-  --dim:        #2a3d5e;
+      --text: #e2eaf8;
+      --text2: #8ba3c7;
+      --muted: #4d6690;
+      --dim: #2a3d5e;
 
-  --blue:       #3b82f6;
-  --blue-dim:   rgba(59,130,246,0.12);
-  --blue-glow:  rgba(59,130,246,0.25);
-  --green:      #22c55e;
-  --green-dim:  rgba(34,197,94,0.12);
-  --amber:      #f59e0b;
-  --red:        #ef4444;
-  --purple:     #a78bfa;
-  --sky:        #38bdf8;
-  --pink:       #f472b6;
-  --orange:     #f97316;
-  --indigo:     #818cf8;
+      --blue: #3b82f6;
+      --blue-dim: rgba(59, 130, 246, 0.12);
+      --blue-glow: rgba(59, 130, 246, 0.25);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.12);
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #a78bfa;
+      --sky: #38bdf8;
+      --pink: #f472b6;
+      --orange: #f97316;
+      --indigo: #818cf8;
 
-  --radius:     6px;
-  --radius-lg:  10px;
-  --mono:       'JetBrains Mono', monospace;
-  --sans:       'Inter', sans-serif;
-}
+      --radius: 6px;
+      --radius-lg: 10px;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', sans-serif;
+    }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 12px;
-  display: flex;
-  flex-direction: column;
-}
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
 
-/* ── TITLEBAR ── */
-.titlebar {
-  height: 48px;
-  background: var(--titlebar);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  gap: 16px;
-  flex-shrink: 0;
-  z-index: 10;
-}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+    }
 
-.tb-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-}
+    /* ── TITLEBAR ── */
+    .titlebar {
+      height: 48px;
+      background: var(--titlebar);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
 
-.tb-icon {
-  width: 28px; height: 28px;
-  background: var(--blue);
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono);
-  font-size: 11px; font-weight: 700;
-  color: #fff;
-  letter-spacing: -1px;
-  flex-shrink: 0;
-}
+    .tb-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
 
-.tb-name {
-  font-size: 13px; font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.3px;
-}
-.tb-name span { color: var(--blue); }
-.tb-version {
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 700;
-  background: var(--blue-dim);
-  color: var(--blue);
-  border: 1px solid var(--blue-glow);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
+    .tb-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--blue);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -1px;
+      flex-shrink: 0;
+    }
 
-.tb-sep { flex: 1; }
+    .tb-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
 
-.tb-status {
-  display: flex; align-items: center; gap: 6px;
-  font-family: var(--mono); font-size: 9px; color: var(--muted);
-}
-.tb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .tb-name span {
+      color: var(--blue);
+    }
 
-.tb-actions { display: flex; gap: 6px; }
+    .tb-version {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid var(--blue-glow);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
 
-.tbtn {
-  height: 28px;
-  padding: 0 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border2);
-  background: var(--surface2);
-  color: var(--text2);
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 700;
-  cursor: pointer;
-  display: flex; align-items: center; gap: 5px;
-  transition: all 0.15s;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
-}
-.tbtn:hover { border-color: var(--border3); color: var(--text); background: var(--surface3); }
-.tbtn.uac  { border-color: rgba(59,130,246,0.4); color: var(--blue); }
-.tbtn.uac:hover { background: var(--blue-dim); }
-.tbtn.uas  { border-color: rgba(34,197,94,0.4); color: var(--green); }
-.tbtn.uas:hover { background: var(--green-dim); }
-.tbtn.zip  { border-color: rgba(167,139,250,0.4); color: var(--purple); }
-.tbtn.zip:hover { background: rgba(167,139,250,0.08); }
+    .tb-sep {
+      flex: 1;
+    }
 
-/* ── WARN STRIP ── */
-.warn-strip {
-  background: rgba(245,158,11,0.07);
-  border-bottom: 1px solid rgba(245,158,11,0.18);
-  padding: 7px 16px;
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--amber);
-  display: none;
-  flex-shrink: 0;
-  line-height: 1.6;
-}
+    .tb-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+    }
 
-/* ── MAIN LAYOUT ── */
-.workspace {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
+    .tb-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
 
-/* ════════════════════════════════════════════
+    .tb-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tbtn {
+      height: 28px;
+      padding: 0 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+      white-space: nowrap;
+      letter-spacing: 0.3px;
+    }
+
+    .tbtn:hover {
+      border-color: var(--border3);
+      color: var(--text);
+      background: var(--surface3);
+    }
+
+    .tbtn.uac {
+      border-color: rgba(59, 130, 246, 0.4);
+      color: var(--blue);
+    }
+
+    .tbtn.uac:hover {
+      background: var(--blue-dim);
+    }
+
+    .tbtn.uas {
+      border-color: rgba(34, 197, 94, 0.4);
+      color: var(--green);
+    }
+
+    .tbtn.uas:hover {
+      background: var(--green-dim);
+    }
+
+    .tbtn.zip {
+      border-color: rgba(167, 139, 250, 0.4);
+      color: var(--purple);
+    }
+
+    .tbtn.zip:hover {
+      background: rgba(167, 139, 250, 0.08);
+    }
+
+    /* ── WARN STRIP ── */
+    .warn-strip {
+      background: rgba(245, 158, 11, 0.07);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.18);
+      padding: 7px 16px;
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--amber);
+      display: none;
+      flex-shrink: 0;
+      line-height: 1.6;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .workspace {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ════════════════════════════════════════════
    LEFT PANEL — Tabbed Sidebar
 ════════════════════════════════════════════ */
-.sidebar {
-  background: var(--sidebar);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+    .sidebar {
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
-/* Tab nav row */
-.tab-nav {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.tab-nav::-webkit-scrollbar { display: none; }
+    /* Tab nav row */
+    .tab-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
 
-.tab-btn {
-  flex: 1;
-  padding: 9px 4px;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 8px; font-weight: 700;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.tab-btn:hover { color: var(--text2); }
-.tab-btn.active {
-  color: var(--blue);
-  border-bottom-color: var(--blue);
-  background: rgba(59,130,246,0.05);
-}
+    .tab-nav::-webkit-scrollbar {
+      display: none;
+    }
 
-/* Tab content panels */
-.tab-panels { flex: 1; overflow: hidden; position: relative; }
-.tab-panel {
-  position: absolute; inset: 0;
-  overflow-y: auto;
-  padding: 12px;
-  display: none;
-  flex-direction: column;
-  gap: 6px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border2) transparent;
-}
-.tab-panel.active { display: flex; }
+    .tab-btn {
+      flex: 1;
+      padding: 9px 4px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
 
-/* Section headers inside panels */
-.sec-hdr {
-  font-family: var(--mono);
-  font-size: 8px; font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 4px 0 6px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 4px;
-}
+    .tab-btn:hover {
+      color: var(--text2);
+    }
 
-/* ── PRESET BUTTONS ── */
-.preset-btn {
-  width: 100%;
-  padding: 8px 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text2);
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.12s;
-  display: flex; align-items: center; gap: 7px;
-}
-.preset-btn:hover { border-color: var(--blue); color: var(--text); background: var(--blue-dim); }
-.preset-icon {
-  width: 18px; height: 18px;
-  border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9px; flex-shrink: 0;
-}
+    .tab-btn.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+      background: rgba(59, 130, 246, 0.05);
+    }
 
-/* ── COMPONENT BUTTONS ── */
-.comp-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
-}
-.comp-btn {
-  padding: 7px 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left: 2px solid transparent;
-  border-radius: var(--radius);
-  color: var(--text2);
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.12s;
-  line-height: 1.2;
-}
-.comp-btn:hover { background: var(--surface2); border-left-color: currentColor; filter: brightness(1.2); }
+    /* Tab content panels */
+    .tab-panels {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
 
-.c-register { color: var(--pink);   border-left-color: var(--pink); }
-.c-invite   { color: var(--blue);   border-left-color: var(--blue); }
-.c-100      { color: var(--muted);  }
-.c-180      { color: var(--sky);    border-left-color: var(--sky); }
-.c-183      { color: var(--amber);  border-left-color: var(--amber); }
-.c-prack    { color: var(--purple); border-left-color: var(--purple); }
-.c-200      { color: var(--green);  border-left-color: var(--green); }
-.c-bye      { color: var(--red);    border-left-color: var(--red); }
-.c-cancel   { color: var(--orange); border-left-color: var(--orange); }
-.c-302      { color: var(--orange); border-left-color: var(--orange); }
-.c-media    { color: var(--indigo); border-left-color: var(--indigo); }
-.c-pause    { color: var(--muted);  }
+    .tab-panel {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border2) transparent;
+    }
 
-.reset-btn {
-  width: 100%;
-  padding: 7px;
-  background: rgba(239,68,68,0.06);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-radius: var(--radius);
-  color: var(--red);
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 700;
-  cursor: pointer;
-  transition: 0.12s;
-  margin-top: 4px;
-}
-.reset-btn:hover { background: rgba(239,68,68,0.12); }
+    .tab-panel.active {
+      display: flex;
+    }
 
-/* ── FORM FIELDS ── */
-.field { display: flex; flex-direction: column; gap: 4px; }
-.field-label {
-  font-family: var(--mono);
-  font-size: 8px; font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.field input[type=text],
-.field select,
-.field textarea {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 10px;
-  padding: 6px 8px;
-  border-radius: var(--radius);
-  outline: none;
-  transition: border-color 0.15s;
-}
-.field input[type=text]:focus,
-.field select:focus,
-.field textarea:focus { border-color: var(--blue); }
-.field textarea { height: 56px; resize: none; }
-.field select option { background: var(--surface2); }
-.field input[type=range] { width: 100%; accent-color: var(--blue); }
-.range-val {
-  font-family: var(--mono); font-size: 9px;
-  color: var(--blue); text-align: right;
-}
+    /* Section headers inside panels */
+    .sec-hdr {
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 4px 0 6px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
+    }
 
-/* ── TRANSPORT PILL ── */
-.transport-row {
-  display: flex; gap: 5px;
-}
-.transport-opt {
-  flex: 1; padding: 6px 4px;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 700;
-  text-align: center;
-  cursor: pointer;
-  transition: 0.12s;
-}
-.transport-opt.active-udp { border-color: var(--blue);   color: var(--blue);   background: var(--blue-dim); }
-.transport-opt.active-tcp { border-color: var(--green);  color: var(--green);  background: var(--green-dim); }
-.transport-opt.active-tls { border-color: var(--purple); color: var(--purple); background: rgba(167,139,250,0.1); }
+    /* ── PRESET BUTTONS ── */
+    .preset-btn {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.12s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
 
-/* ── QUICK HEADER CHIPS ── */
-.hdr-chip {
-  font-family: var(--mono); font-size: 8px; font-weight: 700;
-  padding: 3px 8px; border-radius: 10px;
-  border: 1px solid var(--border2);
-  background: var(--surface2); color: var(--text2);
-  cursor: pointer; transition: all 0.12s; white-space: nowrap;
-}
-.hdr-chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
-.hdr-chip.active { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+    .preset-btn:hover {
+      border-color: var(--blue);
+      color: var(--text);
+      background: var(--blue-dim);
+    }
 
-/* ── EDIT BUTTON ON STEP CARD ── */
-.edit-btn {
-  background: transparent; border: 1px solid var(--border2);
-  color: var(--muted); cursor: pointer;
-  font-size: 10px; padding: 2px 5px;
-  border-radius: 3px; transition: 0.12s; line-height: 1;
-}
-.edit-btn:hover, .edit-btn.active { color: var(--amber); border-color: var(--amber); background: rgba(245,158,11,0.08); }
+    .preset-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      flex-shrink: 0;
+    }
 
-/* ── STEP INLINE EDITOR ── */
-.step-editor {
-  background: rgba(245,158,11,0.04);
-  border: 1px solid rgba(245,158,11,0.2);
-  border-radius: var(--radius);
-  padding: 10px;
-  margin-bottom: 4px;
-  animation: edIn 0.15s ease;
-}
-@keyframes edIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
-.ed-title {
-  font-family: var(--mono); font-size: 8px; font-weight: 700;
-  color: var(--amber); margin-bottom: 8px; letter-spacing: 0.5px;
-}
-.ed-row {
-  display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
-}
-.ed-lbl {
-  font-family: var(--mono); font-size: 8px; color: var(--muted);
-  min-width: 72px; text-align: right; flex-shrink: 0;
-}
-.ed-inp {
-  flex: 1; background: var(--surface2); border: 1px solid var(--border2);
-  color: var(--text); font-family: var(--mono); font-size: 9px;
-  padding: 3px 6px; border-radius: 4px; outline: none; transition: 0.12s;
-}
-.ed-inp:focus { border-color: var(--amber); }
-.ed-hint {
-  font-family: var(--mono); font-size: 7px; color: var(--dim);
-  margin-top: 6px; line-height: 1.5;
-}
+    /* ── COMPONENT BUTTONS ── */
+    .comp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
 
-/* ── CODEC CHECKBOXES ── */
-.codec-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: 0.12s;
-}
-.codec-item:hover { border-color: var(--border2); }
-.codec-item input[type=checkbox] {
-  width: 13px; height: 13px;
-  accent-color: var(--blue);
-  cursor: pointer; flex-shrink: 0;
-}
-.codec-item label {
-  font-family: var(--mono); font-size: 9px;
-  color: var(--text2); cursor: pointer; flex: 1;
-}
-.codec-pt {
-  font-family: var(--mono); font-size: 8px; font-weight: 700;
-  color: var(--dim);
-  background: var(--surface2);
-  padding: 1px 5px; border-radius: 3px;
-}
+    .comp-btn {
+      padding: 7px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 2px solid transparent;
+      border-radius: var(--radius);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.12s;
+      line-height: 1.2;
+    }
 
-/* ════════════════════════════════════════════
+    .comp-btn:hover {
+      background: var(--surface2);
+      border-left-color: currentColor;
+      filter: brightness(1.2);
+    }
+
+    .c-register {
+      color: var(--pink);
+      border-left-color: var(--pink);
+    }
+
+    .c-invite {
+      color: var(--blue);
+      border-left-color: var(--blue);
+    }
+
+    .c-100 {
+      color: var(--muted);
+    }
+
+    .c-180 {
+      color: var(--sky);
+      border-left-color: var(--sky);
+    }
+
+    .c-183 {
+      color: var(--amber);
+      border-left-color: var(--amber);
+    }
+
+    .c-prack {
+      color: var(--purple);
+      border-left-color: var(--purple);
+    }
+
+    .c-200 {
+      color: var(--green);
+      border-left-color: var(--green);
+    }
+
+    .c-bye {
+      color: var(--red);
+      border-left-color: var(--red);
+    }
+
+    .c-cancel {
+      color: var(--orange);
+      border-left-color: var(--orange);
+    }
+
+    .c-302 {
+      color: var(--orange);
+      border-left-color: var(--orange);
+    }
+
+    .c-media {
+      color: var(--indigo);
+      border-left-color: var(--indigo);
+    }
+
+    .c-pause {
+      color: var(--muted);
+    }
+
+    .reset-btn {
+      width: 100%;
+      padding: 7px;
+      background: rgba(239, 68, 68, 0.06);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: var(--radius);
+      color: var(--red);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.12s;
+      margin-top: 4px;
+    }
+
+    .reset-btn:hover {
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    /* ── FORM FIELDS ── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-label {
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .field input[type=text],
+    .field select,
+    .field textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 6px 8px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .field input[type=text]:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--blue);
+    }
+
+    .field textarea {
+      height: 56px;
+      resize: none;
+    }
+
+    .field select option {
+      background: var(--surface2);
+    }
+
+    .field input[type=range] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .range-val {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--blue);
+      text-align: right;
+    }
+
+    /* ── TRANSPORT PILL ── */
+    .transport-row {
+      display: flex;
+      gap: 5px;
+    }
+
+    .transport-opt {
+      flex: 1;
+      padding: 6px 4px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: var(--surface2);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.12s;
+    }
+
+    .transport-opt.active-udp {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: var(--blue-dim);
+    }
+
+    .transport-opt.active-tcp {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dim);
+    }
+
+    .transport-opt.active-tls {
+      border-color: var(--purple);
+      color: var(--purple);
+      background: rgba(167, 139, 250, 0.1);
+    }
+
+    /* ── QUICK HEADER CHIPS ── */
+    .hdr-chip {
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.12s;
+      white-space: nowrap;
+    }
+
+    .hdr-chip:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: var(--blue-dim);
+    }
+
+    .hdr-chip.active {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: var(--blue-dim);
+    }
+
+    /* ── EDIT BUTTON ON STEP CARD ── */
+    .edit-btn {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 10px;
+      padding: 2px 5px;
+      border-radius: 3px;
+      transition: 0.12s;
+      line-height: 1;
+    }
+
+    .edit-btn:hover,
+    .edit-btn.active {
+      color: var(--amber);
+      border-color: var(--amber);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    /* ── STEP INLINE EDITOR ── */
+    .step-editor {
+      background: rgba(245, 158, 11, 0.04);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: var(--radius);
+      padding: 10px;
+      margin-bottom: 4px;
+      animation: edIn 0.15s ease;
+    }
+
+    @keyframes edIn {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .ed-title {
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--amber);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .ed-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+
+    .ed-lbl {
+      font-family: var(--mono);
+      font-size: 8px;
+      color: var(--muted);
+      min-width: 72px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .ed-inp {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 9px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      outline: none;
+      transition: 0.12s;
+    }
+
+    .ed-inp:focus {
+      border-color: var(--amber);
+    }
+
+    .ed-hint {
+      font-family: var(--mono);
+      font-size: 7px;
+      color: var(--dim);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    /* ── CODEC CHECKBOXES ── */
+    .codec-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: 0.12s;
+    }
+
+    .codec-item:hover {
+      border-color: var(--border2);
+    }
+
+    .codec-item input[type=checkbox] {
+      width: 13px;
+      height: 13px;
+      accent-color: var(--blue);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .codec-item label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text2);
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .codec-pt {
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--dim);
+      background: var(--surface2);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ════════════════════════════════════════════
    RIGHT AREA — Flow + XML
 ════════════════════════════════════════════ */
-.right-area {
-  display: grid;
-  grid-template-columns: 230px 1fr;
-  overflow: hidden;
-  min-height: 0;
-  min-width: 0;
-}
+    .right-area {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      overflow: hidden;
+      min-height: 0;
+      min-width: 0;
+    }
 
-/* ── FLOW PANEL ── */
-.flow-panel {
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+    /* ── FLOW PANEL ── */
+    .flow-panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
-.flow-header {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  flex-shrink: 0;
-}
-.flow-title {
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.step-count {
-  font-family: var(--mono); font-size: 9px;
-  color: var(--muted);
-  background: var(--surface2);
-  padding: 2px 6px; border-radius: 10px;
-}
+    .flow-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
 
-.flow-canvas {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border2) transparent;
-}
+    .flow-title {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
 
-.empty-state {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  height: 100%;
-  gap: 8px;
-  opacity: 0.4;
-}
-.empty-icon { font-size: 28px; }
-.empty-text { font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: center; line-height: 1.6; }
+    .step-count {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
 
-/* Step cards */
-.step-card {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-left: 2px solid transparent;
-  border-radius: var(--radius);
-  padding: 6px 8px;
-  margin-bottom: 4px;
-  display: flex; align-items: center; gap: 6px;
-  cursor: grab;
-  transition: all 0.12s;
-  animation: cardIn 0.15s ease;
-}
-.step-card:hover { border-color: var(--border3); background: var(--surface3); }
-@keyframes cardIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+    .flow-canvas {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border2) transparent;
+    }
 
-.step-num {
-  font-family: var(--mono); font-size: 8px; font-weight: 700;
-  color: var(--dim); min-width: 14px;
-}
-.step-badge {
-  font-family: var(--mono); font-size: 8px; font-weight: 700;
-  padding: 2px 6px; border-radius: 3px;
-  white-space: nowrap;
-}
-.step-meta { flex: 1; font-family: var(--mono); font-size: 8px; color: var(--muted); }
-.step-actions { display: flex; gap: 3px; align-items: center; }
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 8px;
+      opacity: 0.4;
+    }
 
-.sdp-pill {
-  font-family: var(--mono); font-size: 7px; font-weight: 700;
-  padding: 2px 5px; border-radius: 3px; border: none;
-  cursor: pointer; transition: 0.12s;
-}
-.sdp-on  { background: rgba(59,130,246,0.15); color: var(--blue); }
-.sdp-off { background: var(--surface3); color: var(--dim); }
+    .empty-icon {
+      font-size: 28px;
+    }
 
-.del-btn {
-  background: transparent; border: none;
-  color: var(--dim); cursor: pointer;
-  font-size: 10px; padding: 2px 4px;
-  border-radius: 3px; transition: 0.12s;
-  line-height: 1;
-}
-.del-btn:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+    .empty-text {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
 
-.step-arrow { text-align: center; color: var(--dim); font-size: 10px; margin: 0; line-height: 1.4; }
+    /* Step cards */
+    .step-card {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-left: 2px solid transparent;
+      border-radius: var(--radius);
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: grab;
+      transition: all 0.12s;
+      animation: cardIn 0.15s ease;
+    }
 
-/* ── XML OUTPUT AREA ── */
-.xml-area {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
+    .step-card:hover {
+      border-color: var(--border3);
+      background: var(--surface3);
+    }
 
-.xml-tabbar {
-  background: var(--titlebar);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: stretch;
-  flex-shrink: 0;
-}
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
 
-.xml-tab {
-  display: flex; align-items: center; gap: 8px;
-  padding: 0 16px;
-  border-right: 1px solid var(--border);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: 0.15s;
-  min-width: 0;
-}
-.xml-tab.active-uac { border-bottom-color: var(--blue); background: rgba(59,130,246,0.04); }
-.xml-tab.active-uas { border-bottom-color: var(--green); background: rgba(34,197,94,0.04); }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
 
-.xml-tab-label {
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 10px 0;
-}
-.xml-tab.active-uac .xml-tab-label { color: var(--blue); }
-.xml-tab.active-uas .xml-tab-label { color: var(--green); }
-.xml-tab:not(.active-uac):not(.active-uas) .xml-tab-label { color: var(--muted); }
+    .step-num {
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--dim);
+      min-width: 14px;
+    }
 
-.xml-tab-badge {
-  font-family: var(--mono); font-size: 7px; font-weight: 700;
-  padding: 1px 5px; border-radius: 3px;
-}
+    .step-badge {
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
 
-.xml-split { flex: 1; }
+    .step-meta {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 8px;
+      color: var(--muted);
+    }
 
-.xml-pane-wrap {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  overflow: hidden;
-  min-height: 0;
-  min-width: 0;
-}
+    .step-actions {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
 
-.xml-pane-col {
-  display: flex; flex-direction: column;
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-  min-height: 0;
-  min-width: 0;
-}
-.xml-pane-col:last-child { border-right: none; }
+    .sdp-pill {
+      font-family: var(--mono);
+      font-size: 7px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      transition: 0.12s;
+    }
 
-.xml-pane-hdr {
-  background: var(--titlebar);
-  border-bottom: 1px solid var(--border);
-  padding: 8px 14px;
-  display: flex; align-items: center; gap: 8px;
-  flex-shrink: 0;
-}
-.xml-pane-name {
-  font-family: var(--mono); font-size: 9px; font-weight: 700;
-  letter-spacing: 0.5px;
-}
-.xml-pane-badge {
-  font-family: var(--mono); font-size: 7px; font-weight: 700;
-  padding: 1px 5px; border-radius: 3px;
-}
-.badge-udp { background: var(--blue-dim);              color: var(--blue); }
-.badge-tcp { background: var(--green-dim);             color: var(--green); }
-.badge-tls { background: rgba(167,139,250,0.12);       color: var(--purple); }
+    .sdp-on {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--blue);
+    }
 
-/* ── COPY BUTTON ── */
-.copy-btn {
-  display: flex; align-items: center; gap: 4px;
-  padding: 3px 9px;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  color: var(--text2);
-  font-family: var(--mono);
-  font-size: 9px; font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-.copy-btn:hover { border-color: var(--border3); color: var(--text); background: var(--surface3); }
-.copy-btn.copied {
-  border-color: rgba(34,197,94,0.5);
-  color: var(--green);
-  background: rgba(34,197,94,0.08);
-}
-.copy-icon { font-size: 11px; line-height: 1; }
+    .sdp-off {
+      background: var(--surface3);
+      color: var(--dim);
+    }
 
-.xml-line-nums {
-  background: var(--titlebar);
-  border-right: 1px solid var(--border);
-  padding: 14px 6px 14px 4px;
-  font-family: var(--mono); font-size: 10px; line-height: 1.6;
-  color: var(--dim); text-align: right;
-  overflow: hidden; user-select: none; flex-shrink: 0;
-  white-space: pre;
-  width: 38px;
-  min-width: 0;
-}
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 10px;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: 0.12s;
+      line-height: 1;
+    }
 
-.xml-content-wrap {
-  display: flex; flex: 1; overflow: hidden; min-height: 0; min-width: 0;
-}
+    .del-btn:hover {
+      color: var(--red);
+      background: rgba(239, 68, 68, 0.1);
+    }
 
-.xml-pane {
-  flex: 1;
-  background: #080d16;
-  font-family: var(--mono);
-  font-size: 10px;
-  line-height: 1.6;
-  overflow: auto;
-  padding: 14px 14px 14px 4px;
-  white-space: pre;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border2) transparent;
-  min-height: 0;
-}
+    .step-arrow {
+      text-align: center;
+      color: var(--dim);
+      font-size: 10px;
+      margin: 0;
+      line-height: 1.4;
+    }
 
-/* ── XML SYNTAX COLORS ── */
-.x-tag   { color: #4a9eff; }
-.x-attr  { color: var(--purple); }
-.x-val   { color: var(--green); }
-.x-sip   { color: var(--pink); font-weight: 700; }
-.x-hdr   { color: #fcd34d; }
-.x-com   { color: #2a3d5e; font-style: italic; }
-.x-resp  { color: var(--green); }
-.x-cdata { color: #c9d8f0; }
-.x-sdp   { color: var(--sky); }
+    /* ── XML OUTPUT AREA ── */
+    .xml-area {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    .xml-tabbar {
+      background: var(--titlebar);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: stretch;
+      flex-shrink: 0;
+    }
 
-/* ── LINE NUMBERS SYNC ── */
-.xml-content-wrap { position: relative; }
-</style>
+    .xml-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      border-right: 1px solid var(--border);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: 0.15s;
+      min-width: 0;
+    }
+
+    .xml-tab.active-uac {
+      border-bottom-color: var(--blue);
+      background: rgba(59, 130, 246, 0.04);
+    }
+
+    .xml-tab.active-uas {
+      border-bottom-color: var(--green);
+      background: rgba(34, 197, 94, 0.04);
+    }
+
+    .xml-tab-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 10px 0;
+    }
+
+    .xml-tab.active-uac .xml-tab-label {
+      color: var(--blue);
+    }
+
+    .xml-tab.active-uas .xml-tab-label {
+      color: var(--green);
+    }
+
+    .xml-tab:not(.active-uac):not(.active-uas) .xml-tab-label {
+      color: var(--muted);
+    }
+
+    .xml-tab-badge {
+      font-family: var(--mono);
+      font-size: 7px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .xml-split {
+      flex: 1;
+    }
+
+    .xml-pane-wrap {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      overflow: hidden;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .xml-pane-col {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .xml-pane-col:last-child {
+      border-right: none;
+    }
+
+    .xml-pane-hdr {
+      background: var(--titlebar);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .xml-pane-name {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .xml-pane-badge {
+      font-family: var(--mono);
+      font-size: 7px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .badge-udp {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .badge-tcp {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .badge-tls {
+      background: rgba(167, 139, 250, 0.12);
+      color: var(--purple);
+    }
+
+    /* ── COPY BUTTON ── */
+    .copy-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--border3);
+      color: var(--text);
+      background: var(--surface3);
+    }
+
+    .copy-btn.copied {
+      border-color: rgba(34, 197, 94, 0.5);
+      color: var(--green);
+      background: rgba(34, 197, 94, 0.08);
+    }
+
+    .copy-icon {
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .xml-line-nums {
+      background: var(--titlebar);
+      border-right: 1px solid var(--border);
+      padding: 14px 6px 14px 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      line-height: 1.6;
+      color: var(--dim);
+      text-align: right;
+      overflow: hidden;
+      user-select: none;
+      flex-shrink: 0;
+      white-space: pre;
+      width: 38px;
+      min-width: 0;
+    }
+
+    .xml-content-wrap {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .xml-pane {
+      flex: 1;
+      background: #080d16;
+      font-family: var(--mono);
+      font-size: 10px;
+      line-height: 1.6;
+      overflow: auto;
+      padding: 14px 14px 14px 4px;
+      white-space: pre;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border2) transparent;
+      min-height: 0;
+    }
+
+    /* ── XML SYNTAX COLORS ── */
+    .x-tag {
+      color: #4a9eff;
+    }
+
+    .x-attr {
+      color: var(--purple);
+    }
+
+    .x-val {
+      color: var(--green);
+    }
+
+    .x-sip {
+      color: var(--pink);
+      font-weight: 700;
+    }
+
+    .x-hdr {
+      color: #fcd34d;
+    }
+
+    .x-com {
+      color: #2a3d5e;
+      font-style: italic;
+    }
+
+    .x-resp {
+      color: var(--green);
+    }
+
+    .x-cdata {
+      color: #c9d8f0;
+    }
+
+    .x-sdp {
+      color: var(--sky);
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px;
+    }
+
+    /* ── LINE NUMBERS SYNC ── */
+    .xml-content-wrap {
+      position: relative;
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ═══════════════════ TITLEBAR ═══════════════════ -->
-<div class="titlebar">
-  <div class="tb-logo">
-    <div class="tb-icon">SA</div>
-    <span class="tb-name">SIPp <span>Architect</span></span>
-    <span class="tb-version">v3.0</span>
-  </div>
-
-  <div class="tb-sep"></div>
-
-  <div class="tb-status">
-    <div class="tb-dot"></div>
-    <span id="statusText">Ready · 0 steps</span>
-  </div>
-
-  <div class="tb-actions">
-    <button class="tbtn uac" onclick="downloadFile('uac')">↓ UAC XML</button>
-    <button class="tbtn uas" onclick="downloadFile('uas')">↓ UAS XML</button>
-    <button class="tbtn zip" onclick="downloadZip()">↓ Both</button>
-  </div>
-</div>
-
-<!-- ═══════════════════ WARN STRIP ═══════════════════ -->
-<div id="warnBanner" class="warn-strip"></div>
-
-<!-- ═══════════════════ WORKSPACE ═══════════════════ -->
-<div class="workspace">
-
-  <!-- ─── SIDEBAR ─── -->
-  <div class="sidebar">
-
-    <!-- Tab nav -->
-    <div class="tab-nav">
-      <button class="tab-btn active" onclick="switchTab('presets',this)">Presets</button>
-      <button class="tab-btn" onclick="switchTab('components',this)">Add Step</button>
-      <button class="tab-btn" onclick="switchTab('config',this)">Config</button>
-      <button class="tab-btn" onclick="switchTab('codecs',this)">SDP</button>
-      <button class="tab-btn" onclick="switchTab('teams',this)">Teams</button>
+  <!-- ═══════════════════ TITLEBAR ═══════════════════ -->
+  <div class="titlebar">
+    <div class="tb-logo">
+      <div class="tb-icon">SA</div>
+      <span class="tb-name">SIPp <span>Architect</span></span>
+      <span class="tb-version">v3.0</span>
     </div>
 
-    <!-- ─── TAB: PRESETS ─── -->
-    <div class="tab-panels">
-      <div class="tab-panel active" id="tab-presets">
-        <div class="sec-hdr">Quick Start Presets</div>
+    <div class="tb-sep"></div>
 
-        <button class="preset-btn" onclick="loadPreset('basic')">
-          <div class="preset-icon" style="background:rgba(59,130,246,0.15);color:var(--blue)">▶</div>
-          <div><div style="color:var(--text);font-weight:600">Basic Call</div><div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 100 · 180 · PRACK · 200 · ACK · BYE</div></div>
-        </button>
+    <div class="tb-status">
+      <div class="tb-dot"></div>
+      <span id="statusText">Ready · 0 steps</span>
+    </div>
 
-        <button class="preset-btn" onclick="loadPreset('early')">
-          <div class="preset-icon" style="background:rgba(245,158,11,0.15);color:var(--amber)">▶</div>
-          <div><div style="color:var(--text);font-weight:600">Early Media</div><div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 183 · PRACK · 200 · BYE</div></div>
-        </button>
-
-        <button class="preset-btn" onclick="loadPreset('teams')">
-          <div class="preset-icon" style="background:rgba(167,139,250,0.15);color:var(--purple)">▶</div>
-          <div><div style="color:var(--text);font-weight:600">Teams Direct Routing</div><div style="color:var(--muted);font-size:8px;margin-top:2px">TLS · PAI · 183 · PRACK · BYE</div></div>
-        </button>
-
-        <button class="preset-btn" onclick="loadPreset('register')">
-          <div class="preset-icon" style="background:rgba(244,114,182,0.15);color:var(--pink)">▶</div>
-          <div><div style="color:var(--text);font-weight:600">REGISTER + Auth</div><div style="color:var(--muted);font-size:8px;margin-top:2px">REGISTER · 401 challenge · 200</div></div>
-        </button>
-
-        <button class="preset-btn" onclick="loadPreset('redirect')">
-          <div class="preset-icon" style="background:rgba(249,115,22,0.15);color:var(--orange)">▶</div>
-          <div><div style="color:var(--text);font-weight:600">302 Redirect</div><div style="color:var(--muted);font-size:8px;margin-top:2px">UAC recvs 302 · UAS sends 302 + ACK</div></div>
-        </button>
-
-        <button class="preset-btn" onclick="loadPreset('egress302')">
-          <div class="preset-icon" style="background:rgba(34,197,94,0.12);color:var(--green)">▶</div>
-          <div><div style="color:var(--text);font-weight:600">Egress 302 → Re-INVITE</div><div style="color:var(--muted);font-size:8px;margin-top:2px">B2BUA: Phase1 302 · Phase2 Re-INVITE</div></div>
-        </button>
-
-        <div style="flex:1"></div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
-          Presets load a complete flow.<br>Use "Add Step" to customise.
-        </div>
-      </div>
-
-      <!-- ─── TAB: COMPONENTS ─── -->
-      <div class="tab-panel" id="tab-components">
-        <div class="sec-hdr">Add Component</div>
-        <div class="comp-grid">
-          <button class="comp-btn c-register" onclick="addStep('REGISTER')">REGISTER<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ Digest Auth</span></button>
-          <button class="comp-btn c-invite"   onclick="addStep('INVITE')">INVITE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">SDP optional</span></button>
-          <button class="comp-btn c-100"      onclick="addStep('100')">100 TRYING<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Provisional</span></button>
-          <button class="comp-btn c-180"      onclick="addStep('180')">180 RINGING<br><span style="font-size:7px;font-weight:400;color:var(--muted)">SDP optional</span></button>
-          <button class="comp-btn c-183"      onclick="addStep('183')">183 PROGRESS<br><span style="font-size:7px;font-weight:400;color:var(--muted)">100rel + SDP</span></button>
-          <button class="comp-btn c-prack"    onclick="addStep('PRACK')">PRACK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">→ [next_url]</span></button>
-          <button class="comp-btn c-200"      onclick="addStep('200')">200 OK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">UAS sends</span></button>
-          <button class="comp-btn" style="color:#86efac;border-left-color:#86efac" onclick="addStep('ACK')">ACK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">UAC sends</span></button>
-          <button class="comp-btn c-bye"      onclick="addStep('BYE')">BYE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ duration pause</span></button>
-          <button class="comp-btn c-cancel"   onclick="addStep('CANCEL')">CANCEL<br><span style="font-size:7px;font-weight:400;color:var(--muted)">+ 487 ACK</span></button>
-          <button class="comp-btn c-302"      onclick="addStep('302')">302 REDIRECT<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Moved Temp</span></button>
-          <button class="comp-btn c-bye"      style="color:#f87171;border-left-color:#f87171" onclick="addStep('4xx')">4xx ERROR<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Client failure</span></button>
-          <button class="comp-btn c-bye"      style="color:#fb923c;border-left-color:#fb923c" onclick="addStep('5xx')">5xx ERROR<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Server failure</span></button>
-          <button class="comp-btn c-media"    onclick="addStep('MEDIA')">PLAY PCAP<br><span style="font-size:7px;font-weight:400;color:var(--muted)">media.pcap</span></button>
-          <button class="comp-btn c-pause"    onclick="addStep('PAUSE')">PAUSE<br><span style="font-size:7px;font-weight:400;color:var(--muted)">2000ms</span></button>
-        </div>
-        <div style="flex:1"></div>
-        <button class="reset-btn" id="resetBtn" onclick="clearAll()">↺ Reset Workspace</button>
-      </div>
-
-      <!-- ─── TAB: CONFIG ─── -->
-      <div class="tab-panel" id="tab-config">
-        <div class="sec-hdr">Transport Protocol</div>
-        <div class="transport-row">
-          <div class="transport-opt active-udp" id="topt-UDP" onclick="setTransport('UDP')">UDP</div>
-          <div class="transport-opt" id="topt-TCP" onclick="setTransport('TCP')">TCP</div>
-          <div class="transport-opt" id="topt-TLS" onclick="setTransport('TLS')">TLS</div>
-        </div>
-
-        <div class="sec-hdr" style="margin-top:8px">Call Duration Before BYE</div>
-        <div class="field">
-          <input type="range" id="callDuration" min="1000" max="60000" step="1000" value="5000" oninput="updateDurLabel();updateUI()">
-          <div class="range-val" id="durLabel">5000 ms</div>
-        </div>
-
-        <div class="sec-hdr" style="margin-top:4px">Redirect URI (302)</div>
-        <div class="field">
-          <input type="text" id="redirectUri" value="sip:forward@dest.com:5060" oninput="updateUI()">
-        </div>
-
-        <div class="sec-hdr" style="margin-top:4px">Global Header Injection</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px" id="hdrChips">
-          <button class="hdr-chip" onclick="addHeaderChip('P-Asserted-Identity: &lt;sip:+NUMBER@DOMAIN&gt;')">PAI</button>
-          <button class="hdr-chip" onclick="addHeaderChip('P-Called-Party-ID: &lt;sip:+NUMBER@DOMAIN&gt;')">P-Called</button>
-          <button class="hdr-chip" onclick="addHeaderChip('P-Charge-Info: &lt;sip:+NUMBER@DOMAIN&gt;')">P-Charge</button>
-          <button class="hdr-chip" onclick="addHeaderChip('Diversion: &lt;sip:+NUMBER@DOMAIN&gt;;reason=unconditional')">Diversion</button>
-          <button class="hdr-chip" onclick="addHeaderChip('History-Info: &lt;sip:+NUMBER@DOMAIN&gt;;index=1')">History-Info</button>
-          <button class="hdr-chip" onclick="addHeaderChip('Remote-Party-ID: &lt;sip:+NUMBER@DOMAIN&gt;;party=calling')">RPID</button>
-          <button class="hdr-chip" onclick="addHeaderChip('Privacy: none')">Privacy</button>
-          <button class="hdr-chip" onclick="addHeaderChip('User-Agent: RibbonSBC/12.0')">User-Agent</button>
-          <button class="hdr-chip" onclick="addHeaderChip('X-Ribbon-CustomerID: VALUE')">X-Customer</button>
-        </div>
-        <div class="field">
-          <textarea id="customHeaders" oninput="updateUI()" placeholder="Click chips above or type headers here&#10;X-Custom-Header: value"></textarea>
-        </div>
-
-        <div class="sec-hdr" style="margin-top:4px">Pause Duration (PAUSE step)</div>
-        <div class="field">
-          <input type="text" id="pauseDuration" value="2000" oninput="updateUI()" placeholder="milliseconds">
-        </div>
-      </div>
-
-      <!-- ─── TAB: SDP / CODECS ─── -->
-      <div class="tab-panel" id="tab-codecs">
-        <div class="sec-hdr">Audio Codecs · Checked = Included</div>
-        <div id="codecList" style="display:flex;flex-direction:column;gap:5px"></div>
-
-        <div class="sec-hdr" style="margin-top:8px">SDP Direction</div>
-        <div class="field">
-          <select id="sdpDirection" onchange="updateUI()">
-            <option value="sendrecv">sendrecv (default)</option>
-            <option value="sendonly">sendonly</option>
-            <option value="recvonly">recvonly</option>
-            <option value="inactive">inactive</option>
-          </select>
-        </div>
-
-        <div class="sec-hdr" style="margin-top:4px">Custom SDP Lines</div>
-        <div class="field">
-          <textarea id="customSdp" oninput="updateUI()" placeholder="a=ptime:20&#10;a=maxptime:150"></textarea>
-        </div>
-
-        <div style="flex:1"></div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
-          Codec order = m= line priority.<br>
-          SDP applied to steps with SDP:ON.
-        </div>
-      </div>
-
-      <!-- ─── TAB: TEAMS ─── -->
-      <div class="tab-panel" id="tab-teams">
-        <div class="sec-hdr">Teams Direct Routing</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--amber);background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:var(--radius);padding:7px 9px;line-height:1.6;margin-bottom:6px">
-          ⚠ Set Transport → TLS in Config tab to activate Teams mode headers in output.
-        </div>
-
-        <div class="field">
-          <div class="field-label">P-Asserted-Identity</div>
-          <input type="text" id="pai" value="sip:+11234567890@tenant.onmicrosoft.com" oninput="updateUI()">
-        </div>
-
-        <div class="field">
-          <div class="field-label">P-Called-Party-ID</div>
-          <input type="text" id="pcpid" value="sip:+10987654321@tenant.onmicrosoft.com" oninput="updateUI()">
-        </div>
-
-        <div class="field">
-          <div class="field-label">History-Info</div>
-          <input type="text" id="historyInfo" value="" placeholder="sip:+10987654321@sbc.domain;index=1" oninput="updateUI()">
-        </div>
-
-        <div class="field">
-          <div class="field-label">SBC FQDN (TLS Contact)</div>
-          <input type="text" id="sbcFqdn" value="sbc.contoso.com" oninput="updateUI()">
-        </div>
-
-        <div style="flex:1"></div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
-          PAI / P-Called-Party-ID inserted<br>into INVITE when TLS transport set.
-        </div>
-      </div>
+    <div class="tb-actions">
+      <button class="tbtn uac" onclick="downloadFile('uac')">↓ UAC XML</button>
+      <button class="tbtn uas" onclick="downloadFile('uas')">↓ UAS XML</button>
+      <button class="tbtn zip" onclick="downloadZip()">↓ Both</button>
     </div>
   </div>
 
-  <!-- ─── RIGHT AREA ─── -->
-  <div class="right-area">
+  <!-- ═══════════════════ WARN STRIP ═══════════════════ -->
+  <div id="warnBanner" class="warn-strip"></div>
 
-    <!-- Flow canvas -->
-    <div class="flow-panel">
-      <div class="flow-header">
-        <span class="flow-title">Scenario Flow</span>
-        <span class="step-count" id="stepCount">0 steps</span>
+  <!-- ═══════════════════ WORKSPACE ═══════════════════ -->
+  <div class="workspace">
+
+    <!-- ─── SIDEBAR ─── -->
+    <div class="sidebar">
+
+      <!-- Tab nav -->
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('presets',this)">Presets</button>
+        <button class="tab-btn" onclick="switchTab('components',this)">Add Step</button>
+        <button class="tab-btn" onclick="switchTab('config',this)">Config</button>
+        <button class="tab-btn" onclick="switchTab('codecs',this)">SDP</button>
+        <button class="tab-btn" onclick="switchTab('teams',this)">Teams</button>
       </div>
-      <div class="flow-canvas" id="canvas">
-        <div class="empty-state">
-          <div class="empty-icon">⬡</div>
-          <div class="empty-text">No steps yet.<br>Choose a Preset or<br>add steps manually.</div>
+
+      <!-- ─── TAB: PRESETS ─── -->
+      <div class="tab-panels">
+        <div class="tab-panel active" id="tab-presets">
+          <div class="sec-hdr">Quick Start Presets</div>
+
+          <button class="preset-btn" onclick="loadPreset('basic')">
+            <div class="preset-icon" style="background:rgba(59,130,246,0.15);color:var(--blue)">▶</div>
+            <div>
+              <div style="color:var(--text);font-weight:600">Basic Call</div>
+              <div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 100 · 180 · 200 · ACK · BYE
+              </div>
+            </div>
+          </button>
+
+          <button class="preset-btn" onclick="loadPreset('early')">
+            <div class="preset-icon" style="background:rgba(245,158,11,0.15);color:var(--amber)">▶</div>
+            <div>
+              <div style="color:var(--text);font-weight:600">Early Media</div>
+              <div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 183 · PRACK · 200 · BYE</div>
+            </div>
+          </button>
+
+          <button class="preset-btn" onclick="loadPreset('teams')">
+            <div class="preset-icon" style="background:rgba(167,139,250,0.15);color:var(--purple)">▶</div>
+            <div>
+              <div style="color:var(--text);font-weight:600">Teams Direct Routing</div>
+              <div style="color:var(--muted);font-size:8px;margin-top:2px">TLS · PAI · 183 · PRACK · BYE</div>
+            </div>
+          </button>
+
+          <button class="preset-btn" onclick="loadPreset('register')">
+            <div class="preset-icon" style="background:rgba(244,114,182,0.15);color:var(--pink)">▶</div>
+            <div>
+              <div style="color:var(--text);font-weight:600">REGISTER + Auth</div>
+              <div style="color:var(--muted);font-size:8px;margin-top:2px">REGISTER · 401 challenge · 200</div>
+            </div>
+          </button>
+
+          <button class="preset-btn" onclick="loadPreset('redirect')">
+            <div class="preset-icon" style="background:rgba(249,115,22,0.15);color:var(--orange)">▶</div>
+            <div>
+              <div style="color:var(--text);font-weight:600">302 Redirect</div>
+              <div style="color:var(--muted);font-size:8px;margin-top:2px">UAC recvs 302 · UAS sends 302 + ACK</div>
+            </div>
+          </button>
+
+          <button class="preset-btn" onclick="loadPreset('egress302')">
+            <div class="preset-icon" style="background:rgba(34,197,94,0.12);color:var(--green)">▶</div>
+            <div>
+              <div style="color:var(--text);font-weight:600">Egress 302 → Re-INVITE</div>
+              <div style="color:var(--muted);font-size:8px;margin-top:2px">B2BUA: Phase1 302 · Phase2 Re-INVITE</div>
+            </div>
+          </button>
+
+          <div style="flex:1"></div>
+          <div
+            style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
+            Presets load a complete flow.<br>Use "Add Step" to customise.
+          </div>
+        </div>
+
+        <!-- ─── TAB: COMPONENTS ─── -->
+        <div class="tab-panel" id="tab-components">
+          <div class="sec-hdr">Add Component</div>
+          <div class="comp-grid">
+            <button class="comp-btn c-register" onclick="addStep('REGISTER')">REGISTER<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">+ Digest Auth</span></button>
+            <button class="comp-btn c-invite" onclick="addStep('INVITE')">INVITE<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">SDP optional</span></button>
+            <button class="comp-btn c-100" onclick="addStep('100')">100 TRYING<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">Provisional</span></button>
+            <button class="comp-btn c-180" onclick="addStep('180')">180 RINGING<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">SDP optional</span></button>
+            <button class="comp-btn c-183" onclick="addStep('183')">183 PROGRESS<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">100rel + SDP</span></button>
+            <button class="comp-btn c-prack" onclick="addStep('PRACK')">PRACK<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">→ [next_url]</span></button>
+            <button class="comp-btn c-200" onclick="addStep('200')">200 OK<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">UAS sends</span></button>
+            <button class="comp-btn" style="color:#86efac;border-left-color:#86efac"
+              onclick="addStep('ACK')">ACK<br><span style="font-size:7px;font-weight:400;color:var(--muted)">UAC
+                sends</span></button>
+            <button class="comp-btn c-bye" onclick="addStep('BYE')">BYE<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">+ duration pause</span></button>
+            <button class="comp-btn c-cancel" onclick="addStep('CANCEL')">CANCEL<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">+ 487 ACK</span></button>
+            <button class="comp-btn c-302" onclick="addStep('302')">302 REDIRECT<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">Moved Temp</span></button>
+            <button class="comp-btn c-bye" style="color:#f87171;border-left-color:#f87171" onclick="addStep('4xx')">4xx
+              ERROR<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Client failure</span></button>
+            <button class="comp-btn c-bye" style="color:#fb923c;border-left-color:#fb923c" onclick="addStep('5xx')">5xx
+              ERROR<br><span style="font-size:7px;font-weight:400;color:var(--muted)">Server failure</span></button>
+            <button class="comp-btn c-media" onclick="addStep('MEDIA')">PLAY PCAP<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">media.pcap</span></button>
+            <button class="comp-btn c-pause" onclick="addStep('PAUSE')">PAUSE<br><span
+                style="font-size:7px;font-weight:400;color:var(--muted)">2000ms</span></button>
+          </div>
+          <div style="flex:1"></div>
+          <button class="reset-btn" id="resetBtn" onclick="clearAll()">↺ Reset Workspace</button>
+        </div>
+
+        <!-- ─── TAB: CONFIG ─── -->
+        <div class="tab-panel" id="tab-config">
+          <div class="sec-hdr">Transport Protocol</div>
+          <div class="transport-row">
+            <div class="transport-opt active-udp" id="topt-UDP" onclick="setTransport('UDP')">UDP</div>
+            <div class="transport-opt" id="topt-TCP" onclick="setTransport('TCP')">TCP</div>
+            <div class="transport-opt" id="topt-TLS" onclick="setTransport('TLS')">TLS</div>
+          </div>
+
+          <div class="sec-hdr" style="margin-top:8px">Call Duration Before BYE</div>
+          <div class="field">
+            <input type="range" id="callDuration" min="1000" max="60000" step="1000" value="5000"
+              oninput="updateDurLabel();updateUI()">
+            <div class="range-val" id="durLabel">5000 ms</div>
+          </div>
+
+          <div class="sec-hdr" style="margin-top:4px">Redirect URI (302)</div>
+          <div class="field">
+            <input type="text" id="redirectUri" value="sip:forward@dest.com:5060" oninput="updateUI()">
+          </div>
+
+          <div class="sec-hdr" style="margin-top:4px">Global Header Injection</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px" id="hdrChips">
+            <button class="hdr-chip"
+              onclick="addHeaderChip('P-Asserted-Identity: &lt;sip:+NUMBER@DOMAIN&gt;')">PAI</button>
+            <button class="hdr-chip"
+              onclick="addHeaderChip('P-Called-Party-ID: &lt;sip:+NUMBER@DOMAIN&gt;')">P-Called</button>
+            <button class="hdr-chip"
+              onclick="addHeaderChip('P-Charge-Info: &lt;sip:+NUMBER@DOMAIN&gt;')">P-Charge</button>
+            <button class="hdr-chip"
+              onclick="addHeaderChip('Diversion: &lt;sip:+NUMBER@DOMAIN&gt;;reason=unconditional')">Diversion</button>
+            <button class="hdr-chip"
+              onclick="addHeaderChip('History-Info: &lt;sip:+NUMBER@DOMAIN&gt;;index=1')">History-Info</button>
+            <button class="hdr-chip"
+              onclick="addHeaderChip('Remote-Party-ID: &lt;sip:+NUMBER@DOMAIN&gt;;party=calling')">RPID</button>
+            <button class="hdr-chip" onclick="addHeaderChip('Privacy: none')">Privacy</button>
+            <button class="hdr-chip" onclick="addHeaderChip('User-Agent: RibbonSBC/12.0')">User-Agent</button>
+            <button class="hdr-chip" onclick="addHeaderChip('X-Ribbon-CustomerID: VALUE')">X-Customer</button>
+          </div>
+          <div class="field">
+            <textarea id="customHeaders" oninput="updateUI()"
+              placeholder="Click chips above or type headers here&#10;X-Custom-Header: value"></textarea>
+          </div>
+
+          <div class="sec-hdr" style="margin-top:4px">Pause Duration (PAUSE step)</div>
+          <div class="field">
+            <input type="text" id="pauseDuration" value="2000" oninput="updateUI()" placeholder="milliseconds">
+          </div>
+        </div>
+
+        <!-- ─── TAB: SDP / CODECS ─── -->
+        <div class="tab-panel" id="tab-codecs">
+          <div class="sec-hdr">Audio Codecs · Checked = Included</div>
+          <div id="codecList" style="display:flex;flex-direction:column;gap:5px"></div>
+
+          <div class="sec-hdr" style="margin-top:8px">SDP Direction</div>
+          <div class="field">
+            <select id="sdpDirection" onchange="updateUI()">
+              <option value="sendrecv">sendrecv (default)</option>
+              <option value="sendonly">sendonly</option>
+              <option value="recvonly">recvonly</option>
+              <option value="inactive">inactive</option>
+            </select>
+          </div>
+
+          <div class="sec-hdr" style="margin-top:4px">Custom SDP Lines</div>
+          <div class="field">
+            <textarea id="customSdp" oninput="updateUI()" placeholder="a=ptime:20&#10;a=maxptime:150"></textarea>
+          </div>
+
+          <div style="flex:1"></div>
+          <div
+            style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
+            Codec order = m= line priority.<br>
+            SDP applied to steps with SDP:ON.
+          </div>
+        </div>
+
+        <!-- ─── TAB: TEAMS ─── -->
+        <div class="tab-panel" id="tab-teams">
+          <div class="sec-hdr">Teams Direct Routing</div>
+          <div
+            style="font-family:var(--mono);font-size:8px;color:var(--amber);background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:var(--radius);padding:7px 9px;line-height:1.6;margin-bottom:6px">
+            ⚠ Set Transport → TLS in Config tab to activate Teams mode headers in output.
+          </div>
+
+          <div class="field">
+            <div class="field-label">P-Asserted-Identity</div>
+            <input type="text" id="pai" value="sip:+11234567890@tenant.onmicrosoft.com" oninput="updateUI()">
+          </div>
+
+          <div class="field">
+            <div class="field-label">P-Called-Party-ID</div>
+            <input type="text" id="pcpid" value="sip:+10987654321@tenant.onmicrosoft.com" oninput="updateUI()">
+          </div>
+
+          <div class="field">
+            <div class="field-label">History-Info</div>
+            <input type="text" id="historyInfo" value="" placeholder="sip:+10987654321@sbc.domain;index=1"
+              oninput="updateUI()">
+          </div>
+
+          <div class="field">
+            <div class="field-label">SBC FQDN (TLS Contact)</div>
+            <input type="text" id="sbcFqdn" value="sbc.contoso.com" oninput="updateUI()">
+          </div>
+
+          <div style="flex:1"></div>
+          <div
+            style="font-family:var(--mono);font-size:8px;color:var(--dim);padding:8px 0;line-height:1.6;border-top:1px solid var(--border)">
+            PAI / P-Called-Party-ID inserted<br>into INVITE when TLS transport set.
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- XML output -->
-    <div class="xml-area">
-      <div class="xml-pane-wrap">
+    <!-- ─── RIGHT AREA ─── -->
+    <div class="right-area">
 
-        <!-- UAC pane -->
-        <div class="xml-pane-col">
-          <div class="xml-pane-hdr">
-            <span class="xml-pane-name" style="color:var(--blue)">UAC_SCENARIO.XML</span>
-            <span class="xml-pane-badge badge-udp" id="uac-badge">UDP</span>
-            <div style="flex:1"></div>
-            <button class="copy-btn" id="copy-uac" onclick="copyToClipboard('uac')">
-              <span class="copy-icon">⎘</span> Copy
-            </button>
-          </div>
-          <div class="xml-content-wrap">
-            <div class="xml-line-nums" id="uac-lines">1</div>
-            <div class="xml-pane" id="uac-out" onscroll="syncScroll('uac')"></div>
+      <!-- Flow canvas -->
+      <div class="flow-panel">
+        <div class="flow-header">
+          <span class="flow-title">Scenario Flow</span>
+          <span class="step-count" id="stepCount">0 steps</span>
+        </div>
+        <div class="flow-canvas" id="canvas">
+          <div class="empty-state">
+            <div class="empty-icon">⬡</div>
+            <div class="empty-text">No steps yet.<br>Choose a Preset or<br>add steps manually.</div>
           </div>
         </div>
-
-        <!-- UAS pane -->
-        <div class="xml-pane-col">
-          <div class="xml-pane-hdr">
-            <span class="xml-pane-name" style="color:var(--green)">UAS_SCENARIO.XML</span>
-            <span class="xml-pane-badge badge-udp" id="uas-badge">UDP</span>
-            <div style="flex:1"></div>
-            <button class="copy-btn" id="copy-uas" onclick="copyToClipboard('uas')">
-              <span class="copy-icon">⎘</span> Copy
-            </button>
-          </div>
-          <div class="xml-content-wrap">
-            <div class="xml-line-nums" id="uas-lines">1</div>
-            <div class="xml-pane" id="uas-out" onscroll="syncScroll('uas')"></div>
-          </div>
-        </div>
-
       </div>
-    </div>
 
+      <!-- XML output -->
+      <div class="xml-area">
+        <div class="xml-pane-wrap">
+
+          <!-- UAC pane -->
+          <div class="xml-pane-col">
+            <div class="xml-pane-hdr">
+              <span class="xml-pane-name" style="color:var(--blue)">UAC_SCENARIO.XML</span>
+              <span class="xml-pane-badge badge-udp" id="uac-badge">UDP</span>
+              <div style="flex:1"></div>
+              <button class="copy-btn" id="copy-uac" onclick="copyToClipboard('uac')">
+                <span class="copy-icon">⎘</span> Copy
+              </button>
+            </div>
+            <div class="xml-content-wrap">
+              <div class="xml-line-nums" id="uac-lines">1</div>
+              <div class="xml-pane" id="uac-out" onscroll="syncScroll('uac')"></div>
+            </div>
+          </div>
+
+          <!-- UAS pane -->
+          <div class="xml-pane-col">
+            <div class="xml-pane-hdr">
+              <span class="xml-pane-name" style="color:var(--green)">UAS_SCENARIO.XML</span>
+              <span class="xml-pane-badge badge-udp" id="uas-badge">UDP</span>
+              <div style="flex:1"></div>
+              <button class="copy-btn" id="copy-uas" onclick="copyToClipboard('uas')">
+                <span class="copy-icon">⎘</span> Copy
+              </button>
+            </div>
+            <div class="xml-content-wrap">
+              <div class="xml-line-nums" id="uas-lines">1</div>
+              <div class="xml-pane" id="uas-out" onscroll="syncScroll('uas')"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
   </div>
-</div>
 
-<script>
-'use strict';
-// ═══════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════
-let steps   = [];
-let dragSrc = null;
-let transport = 'UDP';
+  <script>
+    'use strict';
+    // ═══════════════════════════════════════════
+    //  STATE
+    // ═══════════════════════════════════════════
+    let steps = [];
+    let dragSrc = null;
+    let transport = 'UDP';
 
-const COLORS = {
-  REGISTER:'#f472b6', INVITE:'#3b82f6', '100':'#4d6690',
-  '180':'#38bdf8',    '183':'#f59e0b',  PRACK:'#a78bfa',
-  '200':'#22c55e',    ACK:'#86efac',    BYE:'#ef4444',
-  CANCEL:'#f97316',   '302':'#f97316',  '4xx':'#f87171',
-  '5xx':'#fb923c',    EGRESS302:'#22c55e', MEDIA:'#818cf8', PAUSE:'#4d6690'
-};
+    const COLORS = {
+      REGISTER: '#f472b6', INVITE: '#3b82f6', '100': '#4d6690',
+      '180': '#38bdf8', '183': '#f59e0b', PRACK: '#a78bfa',
+      '200': '#22c55e', ACK: '#86efac', BYE: '#ef4444',
+      CANCEL: '#f97316', '302': '#f97316', '4xx': '#f87171',
+      '5xx': '#fb923c', EGRESS302: '#22c55e', MEDIA: '#818cf8', PAUSE: '#4d6690'
+    };
 
-// ═══════════════════════════════════════════
-//  SDP / CODEC ENGINE
-// ═══════════════════════════════════════════
-const CODEC_DEFS = {
-  'PCMA/8000':       { pt:8,   name:'PCMA',            rate:8000  },
-  'PCMU/8000':       { pt:0,   name:'PCMU',            rate:8000  },
-  'G729/8000':       { pt:18,  name:'G729',            rate:8000  },
-  'G722/8000':       { pt:9,   name:'G722',            rate:8000  },
-  'opus/48000':      { pt:96,  name:'opus',            rate:48000, fmtp:'minptime=20;useinbandfec=1' },
-  'telephone-event': { pt:101, name:'telephone-event', rate:8000,  fmtp:'0-15' },
-};
+    // ═══════════════════════════════════════════
+    //  SDP / CODEC ENGINE
+    // ═══════════════════════════════════════════
+    const CODEC_DEFS = {
+      'PCMA/8000': { pt: 8, name: 'PCMA', rate: 8000 },
+      'PCMU/8000': { pt: 0, name: 'PCMU', rate: 8000 },
+      'G729/8000': { pt: 18, name: 'G729', rate: 8000 },
+      'G722/8000': { pt: 9, name: 'G722', rate: 8000 },
+      'opus/48000': { pt: 96, name: 'opus', rate: 48000, fmtp: 'minptime=20;useinbandfec=1' },
+      'telephone-event': { pt: 101, name: 'telephone-event', rate: 8000, fmtp: '0-15' },
+    };
 
-function getCodecs() {
-  const checked = document.querySelectorAll('.codec-cb:checked');
-  const vals = Array.from(checked).map(b => b.value);
-  return vals.length ? vals : ['PCMA/8000'];
-}
-
-function buildSDP(codecs) {
-  if (!codecs?.length) codecs = ['PCMA/8000'];
-  const direction = document.getElementById('sdpDirection')?.value || 'sendrecv';
-  const customLines = (document.getElementById('customSdp')?.value || '').trim();
-  const pts = codecs.map(k => CODEC_DEFS[k]?.pt ?? 8).join(' ');
-  const lines = [
-    'v=0',
-    'o=user1 53655765 2353687637 IN IP[local_ip_type] [local_ip]',
-    's=-',
-    'c=IN IP[media_ip_type] [media_ip]',
-    't=0 0',
-    `m=audio [media_port] RTP/AVP ${pts}`,
-  ];
-  codecs.forEach(k => {
-    const c = CODEC_DEFS[k]; if (!c) return;
-    lines.push(`a=rtpmap:${c.pt} ${c.name}/${c.rate}`);
-    if (c.fmtp) lines.push(`a=fmtp:${c.pt} ${c.fmtp}`);
-  });
-  lines.push(`a=${direction}`);
-  if (customLines) customLines.split('\n').forEach(l => { if (l.trim()) lines.push(l.trim()); });
-  return lines.join('\n');
-}
-
-function sdpBlock(codecs) {
-  const body = buildSDP(codecs);
-  const indented = body.split('\n').map(l => '      ' + l).join('\n');
-  return `Content-Type: application/sdp\n      Content-Length: [len]\n\n${indented}`;
-}
-function noSdp() { return 'Content-Length: 0'; }
-
-// ═══════════════════════════════════════════
-//  PRESETS
-// ═══════════════════════════════════════════
-const PRESETS = {
-  basic:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'180',sdp:false},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'ACK',sdp:false},{type:'BYE',sdp:false}],
-  early:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'ACK',sdp:false},{type:'BYE',sdp:false}],
-  teams:     [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'183',sdp:true},{type:'PRACK',sdp:false},{type:'200',sdp:true},{type:'ACK',sdp:false},{type:'BYE',sdp:false}],
-  register:  [{type:'REGISTER',sdp:false}],
-  redirect:  [{type:'INVITE',sdp:true},{type:'100',sdp:false},{type:'302',sdp:false}],
-  egress302: [{type:'EGRESS302',sdp:true}],
-};
-
-function loadPreset(name) {
-  steps = PRESETS[name].map(s => ({...s}));
-  if (name === 'teams') { setTransport('TLS'); switchTab('teams', document.querySelector('.tab-btn:last-child')); }
-  updateUI();
-}
-
-// ═══════════════════════════════════════════
-//  STEP MANAGEMENT
-// ═══════════════════════════════════════════
-function addStep(t) {
-  steps.push({ type:t, sdp:['INVITE','183','200'].includes(t) });
-  updateUI();
-}
-function removeStep(i) { steps.splice(i,1); updateUI(); }
-function toggleSDP(i)  { steps[i].sdp = !steps[i].sdp; updateUI(); }
-function clearAll() {
-  steps = [];
-  updateUI();
-  const btn = document.getElementById('resetBtn');
-  if (!btn) return;
-  const orig = btn.textContent;
-  btn.textContent = '✓ Cleared';
-  btn.style.background = 'rgba(34,197,94,0.12)';
-  btn.style.borderColor = 'rgba(34,197,94,0.3)';
-  btn.style.color = '#22c55e';
-  setTimeout(() => {
-    btn.textContent = orig;
-    btn.style.background = '';
-    btn.style.borderColor = '';
-    btn.style.color = '';
-  }, 1200);
-}
-
-// ═══════════════════════════════════════════
-//  TRANSPORT
-// ═══════════════════════════════════════════
-function setTransport(t) {
-  transport = t;
-  ['UDP','TCP','TLS'].forEach(x => {
-    const el = document.getElementById('topt-'+x);
-    el.className = 'transport-opt' + (x===t ? ` active-${x.toLowerCase()}` : '');
-  });
-  updateBadges();
-  updateUI();
-}
-
-function updateBadges() {
-  const cls = transport==='TLS'?'badge-tls':transport==='TCP'?'badge-tcp':'badge-udp';
-  ['uac','uas'].forEach(id => {
-    const b = document.getElementById(id+'-badge');
-    b.textContent = transport;
-    b.className = 'xml-pane-badge ' + cls;
-  });
-}
-
-// ═══════════════════════════════════════════
-//  TAB SWITCHING
-// ═══════════════════════════════════════════
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  if (btn) btn.classList.add('active');
-}
-
-// ═══════════════════════════════════════════
-//  DRAG & DROP
-// ═══════════════════════════════════════════
-function makeDraggable(el, idx) {
-  el.draggable = true;
-  el.addEventListener('dragstart', () => { dragSrc = idx; el.style.opacity = '0.4'; });
-  el.addEventListener('dragend',   () => { el.style.opacity = '1'; });
-  el.addEventListener('dragover',  e => e.preventDefault());
-  el.addEventListener('drop', () => {
-    if (dragSrc===null || dragSrc===idx) return;
-    const moved = steps.splice(dragSrc,1)[0];
-    steps.splice(idx,0,moved);
-    dragSrc = null; updateUI();
-  });
-}
-
-// ═══════════════════════════════════════════
-//  VALIDATION
-// ═══════════════════════════════════════════
-function validate() {
-  const warns = [];
-  const has = t => steps.some(s => s.type===t);
-  if (has('183') && !has('PRACK'))
-    warns.push('⚠  183 without PRACK — UAS sends Require:100rel but UAC never acknowledges');
-  if (has('180') && !has('PRACK'))
-    warns.push('⚠  180 without PRACK — Ribbon SBC sends Require:100rel in 180, UAC must PRACK');
-  if (has('PRACK') && !has('183') && !has('180'))
-    warns.push('⚠  PRACK without 180 or 183 — nothing to acknowledge');
-  if (has('200') && !has('ACK'))
-    warns.push('⚠  200 OK without ACK — add ACK step after 200');
-  if (has('ACK') && !has('200'))
-    warns.push('⚠  ACK without 200 OK — ACK must follow a 200');
-  if (has('INVITE') && !has('BYE') && !has('302') && !has('CANCEL') && !has('4xx') && !has('5xx') && !has('EGRESS302'))
-    warns.push('⚠  INVITE has no teardown — add BYE, CANCEL, 302, 4xx, or 5xx');
-  if (has('BYE') && !has('200'))
-    warns.push('⚠  BYE without 200 OK — dialog was never established');
-  if ((has('4xx') || has('5xx')) && !has('INVITE'))
-    warns.push('⚠  Error response without INVITE — nothing to reject');
-  const banner = document.getElementById('warnBanner');
-  banner.style.display = warns.length ? 'block' : 'none';
-  banner.innerHTML = warns.join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-}
-
-// ═══════════════════════════════════════════
-//  CONFIG HELPERS
-// ═══════════════════════════════════════════
-function updateDurLabel() {
-  const v = document.getElementById('callDuration').value;
-  document.getElementById('durLabel').textContent = v + ' ms';
-}
-
-function getCfg() {
-  return {
-    transport,
-    duration:    document.getElementById('callDuration').value,
-    redirect:    document.getElementById('redirectUri').value,
-    customHdrs:  document.getElementById('customHeaders').value.trim(),
-    pai:         document.getElementById('pai').value,
-    pcpid:       document.getElementById('pcpid').value,
-    histInfo:    document.getElementById('historyInfo').value,
-    sbcFqdn:     document.getElementById('sbcFqdn').value || 'sbc.contoso.com',
-    pauseDur:    document.getElementById('pauseDuration').value || '2000',
-    codecs:      getCodecs(),
-  };
-}
-
-function sipContact(cfg) {
-  if (cfg.transport==='TLS') return `<sip:sipp@${cfg.sbcFqdn}:5061;transport=tls>`;
-  return `<sip:sipp@[local_ip]:[local_port]>`;
-}
-function viaLine(cfg) {
-  const t = cfg.transport==='TLS' ? 'TLS' : cfg.transport;
-  return `Via: SIP/2.0/${t} [local_ip]:[local_port];branch=[branch]`;
-}
-
-// ═══════════════════════════════════════════
-//  XML GENERATION
-//  Key rules for SIPp XML parse compliance:
-//  1. SIP message lines inside CDATA must have
-//     NO leading whitespace — SIPp is strict.
-//  2. Blank line (empty line) required between
-//     headers and SDP body.
-//  3. Content-Length must always be present.
-//  4. CDATA block itself is indented for XML
-//     readability but SIP content is column-0.
-// ═══════════════════════════════════════════
-
-// ── CDATA FORMAT (matches proven working SIPp scenario) ──
-// Rule 1: CDATA opens with blank line before first SIP line
-// Rule 2: CDATA closes with blank line after last SIP line
-// Rule 3: SIP lines at column 0 — no leading whitespace
-// Rule 4: Use [transport] keyword — NOT hardcoded UDP/TCP/TLS
-// Rule 5: [peer_tag_param] in ACK/BYE To header
-// Rule 6: Explicit CSeq integers (1 INVITE, 1 ACK, 2 BYE)
-// Rule 7: DOCTYPE declaration required
-
-function sendBlock(sipLines, retrans) {
-  const retransAttr = retrans ? ` retrans="${retrans}"` : '';
-  // SIPp CDATA format: each SIP line at column 0, blank line before content, blank line before ]]>
-  const lines = sipLines.filter(l => l != null);
-  const body = lines.join('\n');
-  return `  <send${retransAttr}>\n    <![CDATA[\n\n${body}\n\n    ]]>\n  </send>`;
-}
-
-function sdpLines(codecs) {
-  return buildSDP(codecs).split('\n');
-}
-
-// Headers array + blank line separator + SDP lines (no trailing '' — sendBlock adds final newline)
-function withSDP(headers, codecs) {
-  return [...headers, '', ...sdpLines(codecs)];
-}
-
-function generateXML(cfg) {
-  // Always use [transport] — SIPp resolves at runtime via -t flag
-  const via     = `Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]`;
-  const contact = `<sip:sipp@[local_ip]:[local_port]>`;
-  const tContact = cfg.transport === 'TLS'
-    ? `<sip:sipp@${cfg.sbcFqdn}:5061;transport=tls>`
-    : contact;
-
-  const customHdrLines = cfg.customHdrs
-    ? cfg.customHdrs.split('\n').map(h => h.trim()).filter(Boolean)
-    : [];
-  const tHdrLines = cfg.transport === 'TLS' ? [
-    cfg.pai      ? `P-Asserted-Identity: <${cfg.pai}>` : null,
-    cfg.pcpid    ? `P-Called-Party-ID: <${cfg.pcpid}>` : null,
-    cfg.histInfo ? `History-Info: <${cfg.histInfo}>` : null,
-  ].filter(Boolean) : [];
-
-  const DOCTYPE = `<!DOCTYPE scenario SYSTEM "sipp.dtd">`;
-  let uac = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n${DOCTYPE}\n\n<scenario name="UAC_Scenario">\n`;
-  let uas = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n${DOCTYPE}\n\n<scenario name="UAS_Scenario">\n`;
-
-  steps.forEach((s, i) => {
-    const n = i + 1;
-    const ov = s.overrides || {};
-    // Per-step override helper — falls back to global tContact
-    const ovContact = ov.contact || tContact;
-    const ovFrom    = ov.from    ? `<${ov.from}>;tag=[call_number]` : `<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`;
-    const ovTo      = ov.to      ? `<${ov.to}>` : `<sip:[service]@[remote_ip]:[remote_port]>`;
-    const ovReason  = ov.reason  || null;
-    const ovRack    = ov.rack    || `[last_RSeq] 1 INVITE`;
-
-    // ── REGISTER ──
-    if (s.type === 'REGISTER') {
-      const regHdrs1 = [
-        `REGISTER sip:[remote_ip] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: sip:[service]@[remote_ip]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] REGISTER`,
-        `Contact: ${ovContact}`,
-        `Expires: 3600`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      const regHdrs2 = [
-        `REGISTER sip:[remote_ip] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: sip:[service]@[remote_ip]`,
-        `[last_Call-ID:]`,
-        `CSeq: [cseq] REGISTER`,
-        `[authentication]`,
-        `Contact: ${ovContact}`,
-        `Expires: 3600`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Step ${n}: REGISTER with Digest Authentication -->\n`;
-      uac += sendBlock(regHdrs1, 500) + `\n\n`;
-      uac += `  <recv response="401" auth="true"/>\n\n`;
-      uac += sendBlock(regHdrs2, 500) + `\n\n`;
-      uac += `  <recv response="200"/>\n`;
-
-      const reg401 = [
-        `SIP/2.0 401 Unauthorized`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `WWW-Authenticate: Digest realm="[remote_ip]", nonce="[authentication]"`,
-        `Content-Length: 0`,
-      ];
-      const reg200 = [
-        `SIP/2.0 200 OK`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Contact: ${ovContact}`,
-        `Expires: 3600`,
-        `Content-Length: 0`,
-      ];
-      uas += `\n  <!-- Step ${n}: Receive REGISTER, challenge, then accept -->\n`;
-      uas += `  <recv request="REGISTER"/>\n`;
-      uas += sendBlock(reg401) + `\n\n`;
-      uas += `  <recv request="REGISTER"/>\n`;
-      uas += sendBlock(reg200) + `\n`;
+    function getCodecs() {
+      const checked = document.querySelectorAll('.codec-cb:checked');
+      const vals = Array.from(checked).map(b => b.value);
+      return vals.length ? vals : ['PCMA/8000'];
     }
 
-    // ── INVITE ──
-    else if (s.type === 'INVITE') {
-      const invHdrs = [
-        `INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: ${ovTo}`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] INVITE`,
-        `Contact: ${ovContact}`,
-        `Supported: 100rel, timer`,
-        `Max-Forwards: 70`,
-        ...customHdrLines,
-        ...tHdrLines,
-        ...(s.sdp
-          ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
-          : [`Content-Length: 0`]
-        ),
+    function buildSDP(codecs) {
+      if (!codecs?.length) codecs = ['PCMA/8000'];
+      const direction = document.getElementById('sdpDirection')?.value || 'sendrecv';
+      const customLines = (document.getElementById('customSdp')?.value || '').trim();
+      const pts = codecs.map(k => CODEC_DEFS[k]?.pt ?? 8).join(' ');
+      const lines = [
+        'v=0',
+        'o=user1 53655765 2353687637 IN IP[local_ip_type] [local_ip]',
+        's=-',
+        'c=IN IP[media_ip_type] [media_ip]',
+        't=0 0',
+        `m=audio [media_port] RTP/AVP ${pts}`,
       ];
-      uac += `\n  <!-- Step ${n}: Send INVITE -->\n`;
-      uac += sendBlock(s.sdp ? withSDP(invHdrs, cfg.codecs) : invHdrs, 500) + `\n`;
-
-      uas += `\n  <!-- Step ${n}: Receive INVITE -->\n`;
-      uas += `  <recv request="INVITE" crlf="true"/>\n`;
+      codecs.forEach(k => {
+        const c = CODEC_DEFS[k]; if (!c) return;
+        lines.push(`a=rtpmap:${c.pt} ${c.name}/${c.rate}`);
+        if (c.fmtp) lines.push(`a=fmtp:${c.pt} ${c.fmtp}`);
+      });
+      lines.push(`a=${direction}`);
+      if (customLines) customLines.split('\n').forEach(l => { if (l.trim()) lines.push(l.trim()); });
+      return lines.join('\n');
     }
 
-    // ── 100 TRYING ──
-    else if (s.type === '100') {
-      uac += `\n  <!-- Step ${n}: Absorb 100 Trying -->\n`;
-      uac += `  <recv response="100" optional="true"/>\n`;
+    function sdpBlock(codecs) {
+      const body = buildSDP(codecs);
+      const indented = body.split('\n').map(l => '      ' + l).join('\n');
+      return `Content-Type: application/sdp\n      Content-Length: [len]\n\n${indented}`;
+    }
+    function noSdp() { return 'Content-Length: 0'; }
 
-      const h100 = [
-        `SIP/2.0 100 Trying`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Content-Length: 0`,
-      ];
-      uas += `\n  <!-- Step ${n}: Send 100 Trying -->\n`;
-      uas += sendBlock(h100) + `\n`;
+    // ═══════════════════════════════════════════
+    //  PRESETS
+    // ═══════════════════════════════════════════
+    const PRESETS = {
+      basic: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '180', sdp: false }, { type: '200', sdp: true }, { type: 'ACK', sdp: false }, { type: 'BYE', sdp: false }],
+      early: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '183', sdp: true }, { type: 'PRACK', sdp: false }, { type: '200', sdp: true }, { type: 'ACK', sdp: false }, { type: 'BYE', sdp: false }],
+      teams: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '183', sdp: true }, { type: 'PRACK', sdp: false }, { type: '200', sdp: true }, { type: 'ACK', sdp: false }, { type: 'BYE', sdp: false }],
+      register: [{ type: 'REGISTER', sdp: false }],
+      redirect: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '302', sdp: false }],
+      egress302: [{ type: 'EGRESS302', sdp: true }],
+    };
+
+    function loadPreset(name) {
+      steps = PRESETS[name].map(s => ({ ...s }));
+      if (name === 'teams') { setTransport('TLS'); switchTab('teams', document.querySelector('.tab-btn:last-child')); }
+      updateUI();
     }
 
-    // ── 180 RINGING ──
-    else if (s.type === '180') {
-      uac += `\n  <!-- Step ${n}: Receive 180 Ringing (mandatory - Ribbon always sends 180 with Require:100rel) -->\n`;
-      uac += `  <recv response="180" rrs="true"/>\n`;
-
-      const h180base = [
-        `SIP/2.0 180 Ringing`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Contact: ${ovContact}`,
-        ...(s.sdp
-          ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
-          : [`Content-Length: 0`]
-        ),
-      ];
-      uas += `\n  <!-- Step ${n}: Send 180 Ringing -->\n`;
-      uas += sendBlock(s.sdp ? withSDP(h180base, cfg.codecs) : h180base) + `\n`;
+    // ═══════════════════════════════════════════
+    //  STEP MANAGEMENT
+    // ═══════════════════════════════════════════
+    function addStep(t) {
+      steps.push({ type: t, sdp: ['INVITE', '183', '200'].includes(t) });
+      updateUI();
+    }
+    function removeStep(i) { steps.splice(i, 1); updateUI(); }
+    function toggleSDP(i) { steps[i].sdp = !steps[i].sdp; updateUI(); }
+    function clearAll() {
+      steps = [];
+      updateUI();
+      const btn = document.getElementById('resetBtn');
+      if (!btn) return;
+      const orig = btn.textContent;
+      btn.textContent = '✓ Cleared';
+      btn.style.background = 'rgba(34,197,94,0.12)';
+      btn.style.borderColor = 'rgba(34,197,94,0.3)';
+      btn.style.color = '#22c55e';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 1200);
     }
 
-    // ── 183 SESSION PROGRESS ──
-    else if (s.type === '183') {
-      uac += `\n  <!-- Step ${n}: Receive 183 Session Progress (mandatory - rrs=true for PRACK next_url) -->\n`;
-      uac += `  <recv response="183" rrs="true"/>\n`;
-
-      const h183base = [
-        `SIP/2.0 183 Session Progress`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `RSeq: 1`,
-        `Require: 100rel`,
-        `Contact: ${ovContact}`,
-        ...(s.sdp
-          ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
-          : [`Content-Length: 0`]
-        ),
-      ];
-      uas += `\n  <!-- Step ${n}: Send 183 Session Progress -->\n`;
-      uas += sendBlock(s.sdp ? withSDP(h183base, cfg.codecs) : h183base) + `\n`;
+    // ═══════════════════════════════════════════
+    //  TRANSPORT
+    // ═══════════════════════════════════════════
+    function setTransport(t) {
+      transport = t;
+      ['UDP', 'TCP', 'TLS'].forEach(x => {
+        const el = document.getElementById('topt-' + x);
+        el.className = 'transport-opt' + (x === t ? ` active-${x.toLowerCase()}` : '');
+      });
+      updateBadges();
+      updateUI();
     }
 
-    // ── PRACK ──
-    else if (s.type === 'PRACK') {
-      const prackHdrs = [
-        `PRACK [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] PRACK`,
-        `RAck: ${ovRack}`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      const prack200 = [
-        `SIP/2.0 200 OK`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Step ${n}: Send PRACK -->\n`;
-      uac += sendBlock(prackHdrs, 500) + `\n\n`;
-      uac += `  <recv response="200"/>\n`;
-
-      uas += `\n  <!-- Step ${n}: Receive PRACK, send 200 OK -->\n`;
-      uas += `  <recv request="PRACK"/>\n`;
-      uas += sendBlock(prack200) + `\n`;
+    function updateBadges() {
+      const cls = transport === 'TLS' ? 'badge-tls' : transport === 'TCP' ? 'badge-tcp' : 'badge-udp';
+      ['uac', 'uas'].forEach(id => {
+        const b = document.getElementById(id + '-badge');
+        b.textContent = transport;
+        b.className = 'xml-pane-badge ' + cls;
+      });
     }
 
-    // ── 200 OK (UAS sends, UAC receives — rrs=true to populate [next_url] for ACK) ──
-    else if (s.type === '200') {
-      uac += `\n  <!-- Step ${n}: Receive 200 OK (rrs captures Contact for ACK/BYE) -->\n`;
-      uac += `  <recv response="200" rrs="true" crlf="true"/>\n`;
-
-      const ok200base = [
-        `SIP/2.0 200 OK`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Contact: ${ovContact}`,
-        ...(s.sdp
-          ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
-          : [`Content-Length: 0`]
-        ),
-      ];
-      uas += `\n  <!-- Step ${n}: Send 200 OK -->\n`;
-      uas += sendBlock(s.sdp ? withSDP(ok200base, cfg.codecs) : ok200base, 500) + `\n`;
+    // ═══════════════════════════════════════════
+    //  TAB SWITCHING
+    // ═══════════════════════════════════════════
+    function switchTab(name, btn) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      if (btn) btn.classList.add('active');
     }
 
-    // ── ACK (UAC-only — sends ACK to [next_url] populated by preceding 200 rrs=true) ──
-    else if (s.type === 'ACK') {
-      const ackHdrs = [
-        `ACK [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] ACK`,
-        `Contact: ${ovContact}`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Step ${n}: Send ACK -->\n`;
-      uac += sendBlock(ackHdrs) + `\n`;
-
-      // UAS: receives ACK after its 200 OK send
-      uas += `\n  <!-- Step ${n}: Receive ACK -->\n`;
-      uas += `  <recv request="ACK" crlf="true"/>\n`;
+    // ═══════════════════════════════════════════
+    //  DRAG & DROP
+    // ═══════════════════════════════════════════
+    function makeDraggable(el, idx) {
+      el.draggable = true;
+      el.addEventListener('dragstart', () => { dragSrc = idx; el.style.opacity = '0.4'; });
+      el.addEventListener('dragend', () => { el.style.opacity = '1'; });
+      el.addEventListener('dragover', e => e.preventDefault());
+      el.addEventListener('drop', () => {
+        if (dragSrc === null || dragSrc === idx) return;
+        const moved = steps.splice(dragSrc, 1)[0];
+        steps.splice(idx, 0, moved);
+        dragSrc = null; updateUI();
+      });
     }
 
-    // ── BYE ──
-    else if (s.type === 'BYE') {
-      const byeHdrs = [
-        `BYE [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] BYE`,
-        `Contact: ${ovContact}`,
-        `Max-Forwards: 70`,
-        ...(ovReason ? [`Reason: ${ovReason}`] : []),
-        `Content-Length: 0`,
-      ];
-      const bye200 = [
-        `SIP/2.0 200 OK`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Hold ${cfg.duration}ms then send BYE -->\n`;
-      uac += `  <pause milliseconds="${cfg.duration}"/>\n\n`;
-      uac += `  <!-- Step ${n}: Send BYE -->\n`;
-      uac += sendBlock(byeHdrs, 500) + `\n\n`;
-      uac += `  <recv response="200" crlf="true"/>\n`;
-
-      uas += `\n  <!-- Step ${n}: Receive BYE, send 200 OK -->\n`;
-      uas += `  <recv request="BYE"/>\n`;
-      uas += sendBlock(bye200) + `\n`;
+    // ═══════════════════════════════════════════
+    //  VALIDATION
+    // ═══════════════════════════════════════════
+    function validate() {
+      const warns = [];
+      const has = t => steps.some(s => s.type === t);
+      if (has('183') && !has('PRACK'))
+        warns.push('⚠  183 without PRACK — UAS sends Require:100rel but UAC never acknowledges');
+      if (has('180') && !has('PRACK'))
+        warns.push('⚠  180 without PRACK — Ribbon SBC sends Require:100rel in 180, UAC must PRACK');
+      if (has('PRACK') && !has('183') && !has('180'))
+        warns.push('⚠  PRACK without 180 or 183 — nothing to acknowledge');
+      if (has('200') && !has('ACK'))
+        warns.push('⚠  200 OK without ACK — add ACK step after 200');
+      if (has('ACK') && !has('200'))
+        warns.push('⚠  ACK without 200 OK — ACK must follow a 200');
+      if (has('INVITE') && !has('BYE') && !has('302') && !has('CANCEL') && !has('4xx') && !has('5xx') && !has('EGRESS302'))
+        warns.push('⚠  INVITE has no teardown — add BYE, CANCEL, 302, 4xx, or 5xx');
+      if (has('BYE') && !has('200'))
+        warns.push('⚠  BYE without 200 OK — dialog was never established');
+      if ((has('4xx') || has('5xx')) && !has('INVITE'))
+        warns.push('⚠  Error response without INVITE — nothing to reject');
+      const banner = document.getElementById('warnBanner');
+      banner.style.display = warns.length ? 'block' : 'none';
+      banner.innerHTML = warns.join('&nbsp;&nbsp;·&nbsp;&nbsp;');
     }
 
-    // ── CANCEL ──
-    else if (s.type === 'CANCEL') {
-      const cancelHdrs = [
-        `CANCEL sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: ${ovTo}`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] CANCEL`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      const ackFor487 = [
-        `ACK [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: ${ovTo}`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] ACK`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      const cancel200 = [
-        `SIP/2.0 200 OK`,
-        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
-        `[last_Call-ID:]`, `[last_CSeq:]`,
-        `Content-Length: 0`,
-      ];
-      const inv487 = [
-        `SIP/2.0 487 Request Terminated`,
-        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
-        `[last_Call-ID:]`,
-        `CSeq: [last_CSeq_number] INVITE`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Step ${n}: Send CANCEL -->\n`;
-      uac += sendBlock(cancelHdrs, 500) + `\n\n`;
-      uac += `  <recv response="200"/>\n`;
-      uac += `  <recv response="487"/>\n`;
-      uac += sendBlock(ackFor487) + `\n`;
-
-      uas += `\n  <!-- Step ${n}: Receive CANCEL, send 200 + 487 -->\n`;
-      uas += `  <recv request="CANCEL"/>\n`;
-      uas += sendBlock(cancel200) + `\n`;
-      uas += sendBlock(inv487) + `\n`;
-      uas += `  <recv request="ACK" optional="true"/>\n`;
+    // ═══════════════════════════════════════════
+    //  CONFIG HELPERS
+    // ═══════════════════════════════════════════
+    function updateDurLabel() {
+      const v = document.getElementById('callDuration').value;
+      document.getElementById('durLabel').textContent = v + ' ms';
     }
 
-    // ── 302 REDIRECT ──
-    else if (s.type === '302') {
-      const redirDst = ov.redirectUri || cfg.redirect;
-      const redir302 = [
-        `SIP/2.0 302 Moved Temporarily`,
-        `[last_Via:]`, `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`, `[last_CSeq:]`,
-        `Contact: <${redirDst}>`,
-        `Content-Length: 0`,
-      ];
-      const ack302 = [
-        `ACK [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] ACK`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Step ${n}: Receive 302, send mandatory ACK (RFC 3261 §8.1.3.4) -->\n`;
-      uac += `  <recv response="302"/>\n`;
-      uac += sendBlock(ack302) + `\n`;
-
-      uas += `\n  <!-- Step ${n}: Receive INVITE, send 302 Moved Temporarily -->\n`;
-      uas += `  <recv request="INVITE" crlf="true"/>\n`;
-      uas += sendBlock(redir302) + `\n`;
-      uas += `  <recv request="ACK" crlf="true"/>\n`;
+    function getCfg() {
+      return {
+        transport,
+        duration: document.getElementById('callDuration').value,
+        redirect: document.getElementById('redirectUri').value,
+        customHdrs: document.getElementById('customHeaders').value.trim(),
+        pai: document.getElementById('pai').value,
+        pcpid: document.getElementById('pcpid').value,
+        histInfo: document.getElementById('historyInfo').value,
+        sbcFqdn: document.getElementById('sbcFqdn').value || 'sbc.contoso.com',
+        pauseDur: document.getElementById('pauseDuration').value || '2000',
+        codecs: getCodecs(),
+      };
     }
 
-    // ── 4xx CLIENT ERROR ──
-    else if (s.type === '4xx') {
-      const code4  = ov.code4xx   || '486';
-      const rsn4   = ov.reason4xx || 'Busy Here';
-      const errAck4 = [
-        `ACK [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] ACK`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Step ${n}: Receive ${code4}, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
-      uac += `  <recv response="${code4}"/>\n`;
-      uac += sendBlock(errAck4) + `\n`;
-
-      const h4xx = [
-        `SIP/2.0 ${code4} ${rsn4}`,
-        `[last_Via:]`, `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`, `[last_CSeq:]`,
-        `Content-Length: 0`,
-      ];
-      uas += `\n  <!-- Step ${n}: Send ${code4} ${rsn4}, receive ACK -->\n`;
-      uas += sendBlock(h4xx) + `\n`;
-      uas += `  <recv request="ACK" optional="true"/>\n`;
+    function sipContact(cfg) {
+      if (cfg.transport === 'TLS') return `<sip:sipp@${cfg.sbcFqdn}:5061;transport=tls>`;
+      return `<sip:sipp@[local_ip]:[local_port]>`;
+    }
+    function viaLine(cfg) {
+      const t = cfg.transport === 'TLS' ? 'TLS' : cfg.transport;
+      return `Via: SIP/2.0/${t} [local_ip]:[local_port];branch=[branch]`;
     }
 
-    // ── 5xx SERVER ERROR ──
-    else if (s.type === '5xx') {
-      const code5  = ov.code5xx   || '503';
-      const retry5 = ov.retryAfter || '30';
-      const errAck5 = [
-        `ACK [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] ACK`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- Step ${n}: Receive ${code5}, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
-      uac += `  <recv response="${code5}"/>\n`;
-      uac += sendBlock(errAck5) + `\n`;
+    // ═══════════════════════════════════════════
+    //  XML GENERATION
+    //  Key rules for SIPp XML parse compliance:
+    //  1. SIP message lines inside CDATA must have
+    //     NO leading whitespace — SIPp is strict.
+    //  2. Blank line (empty line) required between
+    //     headers and SDP body.
+    //  3. Content-Length must always be present.
+    //  4. CDATA block itself is indented for XML
+    //     readability but SIP content is column-0.
+    // ═══════════════════════════════════════════
 
-      const h5xx = [
-        `SIP/2.0 ${code5} Service Unavailable`,
-        `[last_Via:]`, `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`, `[last_CSeq:]`,
-        `Retry-After: ${retry5}`,
-        `Content-Length: 0`,
-      ];
-      uas += `\n  <!-- Step ${n}: Send ${code5}, receive ACK -->\n`;
-      uas += sendBlock(h5xx) + `\n`;
-      uas += `  <recv request="ACK" optional="true"/>\n`;
+    // ── CDATA FORMAT (matches proven working SIPp scenario) ──
+    // Rule 1: CDATA opens with blank line before first SIP line
+    // Rule 2: CDATA closes with blank line after last SIP line
+    // Rule 3: SIP lines at column 0 — no leading whitespace
+    // Rule 4: Use [transport] keyword — NOT hardcoded UDP/TCP/TLS
+    // Rule 5: [peer_tag_param] in ACK/BYE To header
+    // Rule 6: Explicit CSeq integers (1 INVITE, 1 ACK, 2 BYE)
+    // Rule 7: DOCTYPE declaration required
+
+    function sendBlock(sipLines, retrans) {
+      const retransAttr = retrans ? ` retrans="${retrans}"` : '';
+      // SIPp CDATA format: each SIP line at column 0, blank line before content, blank line before ]]>
+      const lines = sipLines.filter(l => l != null);
+      const body = lines.join('\n');
+      return `  <send${retransAttr}>\n    <![CDATA[\n\n${body}\n\n]]>\n  </send>`;
     }
 
-    // ── EGRESS 302 → RE-INVITE (compound two-phase UAS) ──
-    // UAC: plain basic call — it just sends INVITE and waits for 200
-    // UAS: Phase 1 answers with 302, Phase 2 handles the re-INVITE
-    else if (s.type === 'EGRESS302') {
-      // ── UAC side: standard INVITE → 200 → ACK → pause → BYE ──
-      const invHdrs = [
-        `INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: ${ovTo}`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] INVITE`,
-        `Contact: ${ovContact}`,
-        `Supported: 100rel, timer`,
-        `Max-Forwards: 70`,
-        ...(s.sdp ? [`Content-Type: application/sdp`, `Content-Length: [len]`] : [`Content-Length: 0`]),
-      ];
-      const ackHdrs = [
-        `ACK [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] ACK`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      const byeHdrs = [
-        `BYE [next_url] SIP/2.0`,
-        via,
-        `From: ${ovFrom}`,
-        `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
-        `Call-ID: [call_id]`,
-        `CSeq: [cseq] BYE`,
-        `Contact: ${ovContact}`,
-        `Max-Forwards: 70`,
-        `Content-Length: 0`,
-      ];
-      uac += `\n  <!-- UAC: Send INVITE — SBC will handle 302 redirect transparently -->\n`;
-      uac += sendBlock(s.sdp ? withSDP(invHdrs, cfg.codecs) : invHdrs, 500) + `\n`;
-      uac += `  <recv response="100" optional="true"/>\n`;
-      uac += `  <recv response="180" optional="true"/>\n`;
-      uac += `  <recv response="200" rrs="true" crlf="true"/>\n\n`;
-      uac += sendBlock(ackHdrs) + `\n`;
-      uac += `\n  <!-- Hold call then BYE -->\n`;
-      uac += `  <pause milliseconds="${cfg.duration}"/>\n\n`;
-      uac += sendBlock(byeHdrs, 500) + `\n`;
-      uac += `  <recv response="200" crlf="true"/>\n`;
-
-      // ── UAS side: two-phase scenario ──
-      // Phase 1: Receive first INVITE from SBC → send 100 → send 302 → recv ACK
-      const h100_p1 = [
-        `SIP/2.0 100 Trying`,
-        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
-        `[last_Call-ID:]`, `[last_CSeq:]`,
-        `Content-Length: 0`,
-      ];
-      const h302 = [
-        `SIP/2.0 302 Moved Temporarily`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Contact: <${cfg.redirect}>`,
-        `Content-Length: 0`,
-      ];
-      // Phase 2: Receive re-INVITE from SBC → send 100 → 180 → 200 → recv ACK → BYE → 200
-      const h100_p2 = [
-        `SIP/2.0 100 Trying`,
-        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
-        `[last_Call-ID:]`, `[last_CSeq:]`,
-        `Content-Length: 0`,
-      ];
-      const h180_p2 = [
-        `SIP/2.0 180 Ringing`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Contact: ${ovContact}`,
-        `Content-Length: 0`,
-      ];
-      const h200base_p2 = [
-        `SIP/2.0 200 OK`,
-        `[last_Via:]`,
-        `[last_From:]`,
-        `[last_To:];tag=[call_number]`,
-        `[last_Call-ID:]`,
-        `[last_CSeq:]`,
-        `Contact: ${ovContact}`,
-        ...(s.sdp ? [`Content-Type: application/sdp`, `Content-Length: [len]`] : [`Content-Length: 0`]),
-      ];
-      const bye200_p2 = [
-        `SIP/2.0 200 OK`,
-        `[last_Via:]`, `[last_From:]`, `[last_To:]`,
-        `[last_Call-ID:]`, `[last_CSeq:]`,
-        `Content-Length: 0`,
-      ];
-
-      uas += `\n  <!-- ═══ PHASE 1: Initial INVITE from SBC — respond with 302 ═══ -->\n`;
-      uas += `  <recv request="INVITE" crlf="true"/>\n`;
-      uas += sendBlock(h100_p1) + `\n`;
-      uas += sendBlock(h302) + `\n`;
-      uas += `  <!-- SBC sends ACK to close the 302 transaction -->\n`;
-      uas += `  <recv request="ACK" crlf="true"/>\n`;
-
-      uas += `\n  <!-- ═══ PHASE 2: SBC re-INVITEs to redirect target ═══ -->\n`;
-      uas += `  <recv request="INVITE" crlf="true"/>\n`;
-      uas += sendBlock(h100_p2) + `\n`;
-      uas += sendBlock(h180_p2) + `\n`;
-      uas += sendBlock(s.sdp ? withSDP(h200base_p2, cfg.codecs) : h200base_p2) + `\n`;
-      uas += `  <recv request="ACK" crlf="true"/>\n`;
-      uas += `\n  <!-- Wait for BYE from SBC -->\n`;
-      uas += `  <recv request="BYE"/>\n`;
-      uas += sendBlock(bye200_p2) + `\n`;
-    }
-    else if (s.type === 'MEDIA') {
-      const blk = `\n  <!-- Step ${n}: Play PCAP audio -->\n  <nop>\n    <action>\n      <exec play_pcap_audio="media.pcap"/>\n    </action>\n  </nop>\n`;
-      uac += blk; uas += blk;
+    function sdpLines(codecs) {
+      return buildSDP(codecs).split('\n');
     }
 
-    // ── PAUSE ──
-    else if (s.type === 'PAUSE') {
-      const dur = ov.pauseMs || cfg.pauseDur || '2000';
-      uac += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
-      uas += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
+    // Headers array + blank line separator + SDP lines (no trailing '' — sendBlock adds final newline)
+    function withSDP(headers, codecs) {
+      return [...headers, '', ...sdpLines(codecs)];
     }
-  });
 
-  // SIPp statistics blocks — match proven working scenario format
-  const stats = `\n  <ResponseTimeRepartition value="10, 20, 30, 40, 50, 100, 150, 200"/>\n  <CallLengthRepartition value="10, 50, 100, 500, 1000, 5000, 10000"/>\n`;
-  uac += stats;
-  uas += stats;
+    function generateXML(cfg) {
+      const hasPrack = steps.some(s => s.type === 'PRACK');
+      // Always use [transport] — SIPp resolves at runtime via -t flag
+      const via = `Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]`;
+      const contact = `sip:sipp@[local_ip]:[local_port]`;
+      const tContact = cfg.transport === 'TLS'
+        ? `sip:sipp@${cfg.sbcFqdn}:5061;transport=tls`
+        : contact;
 
-  uac += `\n</scenario>`;
-  uas += `\n</scenario>`;
-  return { uac, uas };
-}
+      const customHdrLines = cfg.customHdrs
+        ? cfg.customHdrs.split('\n').map(h => h.trim()).filter(Boolean)
+        : [];
+      const tHdrLines = cfg.transport === 'TLS' ? [
+        cfg.pai ? `P-Asserted-Identity: <${cfg.pai}>` : null,
+        cfg.pcpid ? `P-Called-Party-ID: <${cfg.pcpid}>` : null,
+        cfg.histInfo ? `History-Info: <${cfg.histInfo}>` : null,
+      ].filter(Boolean) : [];
 
-// ═══════════════════════════════════════════
-//  QUICK HEADER CHIPS (Point 3)
-// ═══════════════════════════════════════════
-function addHeaderChip(header) {
-  const decoded = header.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
-  const ta = document.getElementById('customHeaders');
-  const current = ta.value.trim();
-  const headerName = decoded.split(':')[0].trim();
-  if (current.split('\n').some(l => l.startsWith(headerName))) {
-    ta.value = current.split('\n').filter(l => !l.startsWith(headerName)).join('\n');
-  } else {
-    ta.value = current ? current + '\n' + decoded : decoded;
-  }
-  updateUI();
-  document.querySelectorAll('.hdr-chip').forEach(c => {
-    const raw = c.getAttribute('onclick').replace(/^addHeaderChip\('|'\)$/g,'');
-    const dec = raw.replace(/&lt;/g,'<').replace(/&gt;/g,'>');
-    const name = dec.split(':')[0].trim();
-    c.classList.toggle('active', ta.value.split('\n').some(l => l.startsWith(name)));
-  });
-}
+      const DOCTYPE = `<!DOCTYPE scenario SYSTEM "sipp.dtd">`;
+      let uac = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n${DOCTYPE}\n\n<scenario name="UAC_Scenario">\n`;
+      let uas = `<?xml version="1.0" encoding="ISO-8859-1" ?>\n${DOCTYPE}\n\n<scenario name="UAS_Scenario">\n`;
 
-// ═══════════════════════════════════════════
-//  STEP INLINE EDITOR (Point 4)
-// ═══════════════════════════════════════════
-let openEditorIdx = null;
+      steps.forEach((s, i) => {
+        const n = i + 1;
+        const ov = s.overrides || {};
+        // Per-step override helper — falls back to global tContact
+        const ovContact = ov.contact || tContact;
+        const ovFrom = ov.from ? `<${ov.from}>;tag=[call_number]` : `<sip:sipp@[local_ip]:[local_port]>;tag=[call_number]`;
+        const ovTo = ov.to ? `<${ov.to}>` : `<sip:[service]@[remote_ip]:[remote_port]>`;
+        const ovReason = ov.reason || null;
+        const ovRack = ov.rack || `[$1] [$2] INVITE`;  // $1=RSeq, $2=CSeq captured via ereg on recv 180/183
 
-function getOv(i, key, def='') { return steps[i]?.overrides?.[key] ?? def; }
-function setOv(i, key, val)    {
-  if (!steps[i].overrides) steps[i].overrides = {};
-  steps[i].overrides[key] = val;
-  updateUI();
-}
-function toggleEditor(i) {
-  openEditorIdx = (openEditorIdx === i) ? null : i;
-  renderCanvas();
-}
+        // ── REGISTER ──
+        if (s.type === 'REGISTER') {
+          const regHdrs1 = [
+            `REGISTER sip:[remote_ip] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: sip:[service]@[remote_ip]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] REGISTER`,
+            `Contact: ${ovContact}`,
+            `Expires: 3600`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          const regHdrs2 = [
+            `REGISTER sip:[remote_ip] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: sip:[service]@[remote_ip]`,
+            `[last_Call-ID:]`,
+            `CSeq: [cseq] REGISTER`,
+            `[authentication]`,
+            `Contact: ${ovContact}`,
+            `Expires: 3600`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- Step ${n}: REGISTER with Digest Authentication -->\n`;
+          uac += sendBlock(regHdrs1, 500) + `\n\n`;
+          uac += `  <recv response="401" auth="true"/>\n\n`;
+          uac += sendBlock(regHdrs2, 500) + `\n\n`;
+          uac += `  <recv response="200"/>\n`;
 
-function edRow(i, label, key, placeholder='') {
-  const val = (getOv(i, key) || '').replace(/"/g,'&quot;');
-  return `<div class="ed-row">
+          const reg401 = [
+            `SIP/2.0 401 Unauthorized`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `WWW-Authenticate: Digest realm="[remote_ip]", nonce="[authentication]"`,
+            `Content-Length: 0`,
+          ];
+          const reg200 = [
+            `SIP/2.0 200 OK`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `Contact: ${ovContact}`,
+            `Expires: 3600`,
+            `Content-Length: 0`,
+          ];
+          uas += `\n  <!-- Step ${n}: Receive REGISTER, challenge, then accept -->\n`;
+          uas += `  <recv request="REGISTER"/>\n`;
+          uas += sendBlock(reg401) + `\n\n`;
+          uas += `  <recv request="REGISTER"/>\n`;
+          uas += sendBlock(reg200) + `\n`;
+        }
+
+        // ── INVITE ──
+        else if (s.type === 'INVITE') {
+          const invHdrs = [
+            `INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: ${ovTo}`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] INVITE`,
+            `Contact: ${ovContact}`,
+            hasPrack ? `Supported: 100rel, timer` : `Supported: timer`,
+            `Max-Forwards: 70`,
+            ...customHdrLines,
+            ...tHdrLines,
+            ...(s.sdp
+              ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
+              : [`Content-Length: 0`]
+            ),
+          ];
+          uac += `\n  <!-- Step ${n}: Send INVITE -->\n`;
+          uac += sendBlock(s.sdp ? withSDP(invHdrs, cfg.codecs) : invHdrs, 500) + `\n`;
+
+          uas += `\n  <!-- Step ${n}: Receive INVITE -->\n`;
+          uas += `  <recv request="INVITE" crlf="true"/>\n`;
+        }
+
+        // ── 100 TRYING ──
+        else if (s.type === '100') {
+          uac += `\n  <!-- Step ${n}: Absorb 100 Trying -->\n`;
+          uac += `  <recv response="100" optional="true"/>\n`;
+
+          const h100 = [
+            `SIP/2.0 100 Trying`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `Content-Length: 0`,
+          ];
+          uas += `\n  <!-- Step ${n}: Send 100 Trying -->\n`;
+          uas += sendBlock(h100) + `\n`;
+        }
+
+        // ── 180 RINGING ──
+        else if (s.type === '180') {
+          if (hasPrack) {
+            uac += `\n  <!-- Step ${n}: Receive 180 Ringing (with 100rel for PRACK) -->\n`;
+            uac += `  <recv response="180" rrs="true">\n    <action>\n      <ereg regexp="[0-9]+" search_in="hdr" header="RSeq:" assign_to="1"/>\n      <ereg regexp="[0-9]+" search_in="hdr" header="CSeq:" assign_to="2"/>\n    </action>\n  </recv>\n`;
+          } else {
+            uac += `\n  <!-- Step ${n}: Receive 180 Ringing -->\n`;
+            uac += `  <recv response="180" optional="true"/>\n`;
+          }
+
+          // UAS: use hardcoded RSeq: 1 — [rseq] is NOT a valid SIPp keyword
+          const h180base = [
+            `SIP/2.0 180 Ringing`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            hasPrack ? `RSeq: 1` : null,
+            hasPrack ? `Require: 100rel` : null,
+            `Contact: ${ovContact}`,
+            ...(s.sdp
+              ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
+              : [`Content-Length: 0`]
+            ),
+          ];
+          uas += `\n  <!-- Step ${n}: Send 180 Ringing -->\n`;
+          uas += sendBlock(s.sdp ? withSDP(h180base, cfg.codecs) : h180base) + `\n`;
+        }
+
+        // ── 183 SESSION PROGRESS ──
+        else if (s.type === '183') {
+          if (hasPrack) {
+            uac += `\n  <!-- Step ${n}: Receive 183 Session Progress (with 100rel for PRACK) -->\n`;
+            uac += `  <recv response="183" rrs="true">\n    <action>\n      <ereg regexp="[0-9]+" search_in="hdr" header="RSeq:" assign_to="1"/>\n      <ereg regexp="[0-9]+" search_in="hdr" header="CSeq:" assign_to="2"/>\n    </action>\n  </recv>\n`;
+          } else {
+            uac += `\n  <!-- Step ${n}: Receive 183 Session Progress -->\n`;
+            uac += `  <recv response="183" optional="true"/>\n`;
+          }
+
+          // UAS: use hardcoded RSeq: 1 — [rseq] is NOT a valid SIPp keyword
+          const h183base = [
+            `SIP/2.0 183 Session Progress`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            hasPrack ? `RSeq: 1` : null,
+            hasPrack ? `Require: 100rel` : null,
+            `Contact: ${ovContact}`,
+            ...(s.sdp
+              ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
+              : [`Content-Length: 0`]
+            ),
+          ];
+          uas += `\n  <!-- Step ${n}: Send 183 Session Progress -->\n`;
+          uas += sendBlock(s.sdp ? withSDP(h183base, cfg.codecs) : h183base) + `\n`;
+        }
+
+        // ── PRACK ──
+        else if (s.type === 'PRACK') {
+          // RAck uses [$1]=RSeq captured from 180/183 via ereg, [$2]=CSeq number captured from 180/183
+          // [last_RSeq] and [last_CSeq_number] are NOT valid SIPp keywords
+          const rackValue = ovRack !== `[last_RSeq] [last_CSeq_number] INVITE` ? ovRack : `[$1] [$2] INVITE`;
+          const prackHdrs = [
+            `PRACK [next_url] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] PRACK`,
+            `RAck: ${rackValue}`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          const prack200 = [
+            `SIP/2.0 200 OK`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- Step ${n}: Send PRACK -->\n`;
+          uac += sendBlock(prackHdrs, 500) + `\n\n`;
+          uac += `  <recv response="200"/>\n`;
+
+          uas += `\n  <!-- Step ${n}: Receive PRACK, send 200 OK -->\n`;
+          uas += `  <recv request="PRACK"/>\n`;
+          uas += sendBlock(prack200) + `\n`;
+        }
+
+        // ── 200 OK (UAS sends, UAC receives — rrs=true to populate [next_url] for ACK) ──
+        else if (s.type === '200') {
+          uac += `\n  <!-- Step ${n}: Receive 200 OK (rrs captures Contact for ACK/BYE) -->\n`;
+          uac += `  <recv response="200" rrs="true" crlf="true"/>\n`;
+
+          const ok200base = [
+            `SIP/2.0 200 OK`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `Contact: ${ovContact}`,
+            ...(s.sdp
+              ? [`Content-Type: application/sdp`, `Content-Length: [len]`]
+              : [`Content-Length: 0`]
+            ),
+          ];
+          uas += `\n  <!-- Step ${n}: Send 200 OK -->\n`;
+          uas += sendBlock(s.sdp ? withSDP(ok200base, cfg.codecs) : ok200base, 500) + `\n`;
+        }
+
+        // ── ACK (UAC-only — sends ACK to [next_url] populated by preceding 200 rrs=true) ──
+        else if (s.type === 'ACK') {
+          const ackHdrs = [
+            `ACK [next_url] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] ACK`,
+            `Contact: ${ovContact}`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- Step ${n}: Send ACK -->\n`;
+          uac += sendBlock(ackHdrs) + `\n`;
+
+          // UAS: receives ACK after its 200 OK send
+          uas += `\n  <!-- Step ${n}: Receive ACK -->\n`;
+          uas += `  <recv request="ACK" crlf="true"/>\n`;
+        }
+
+        // ── BYE ──
+        else if (s.type === 'BYE') {
+          const byeHdrs = [
+            `BYE [next_url] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] BYE`,
+            `Contact: ${ovContact}`,
+            `Max-Forwards: 70`,
+            ...(ovReason ? [`Reason: ${ovReason}`] : []),
+            `Content-Length: 0`,
+          ];
+          const bye200 = [
+            `SIP/2.0 200 OK`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- Hold ${cfg.duration}ms then send BYE -->\n`;
+          uac += `  <pause milliseconds="${cfg.duration}"/>\n\n`;
+          uac += `  <!-- Step ${n}: Send BYE -->\n`;
+          uac += sendBlock(byeHdrs, 500) + `\n\n`;
+          uac += `  <recv response="200" crlf="true"/>\n`;
+
+          uas += `\n  <!-- Step ${n}: Receive BYE, send 200 OK -->\n`;
+          uas += `  <recv request="BYE"/>\n`;
+          uas += sendBlock(bye200) + `\n`;
+        }
+
+        // ── CANCEL ──
+        else if (s.type === 'CANCEL') {
+          const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
+          const cancelHdrs = [
+            `CANCEL sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: ${ovTo}`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] CANCEL`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          const ackFor487 = [
+            `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: ${ovTo}`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] ACK`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          const cancel200 = [
+            `SIP/2.0 200 OK`,
+            `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+            `[last_Call-ID:]`, `[last_CSeq:]`,
+            `Content-Length: 0`,
+          ];
+          const inv487 = [
+            `SIP/2.0 487 Request Terminated`,
+            `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+            `[last_Call-ID:]`,
+            `CSeq: [last_CSeq_number] INVITE`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- Step ${n}: Send CANCEL -->\n`;
+          uac += sendBlock(cancelHdrs, 500) + `\n\n`;
+          uac += `  <recv response="200"/>\n`;
+          uac += `  <recv response="487"/>\n`;
+          uac += sendBlock(ackFor487) + `\n`;
+
+          uas += `\n  <!-- Step ${n}: Receive CANCEL, send 200 + 487 -->\n`;
+          if (!hasPriorInvite) { uas += `  <recv request="CANCEL"/>\n`; }
+          else { uas += `  <recv request="CANCEL"/>\n`; }
+          uas += sendBlock(cancel200) + `\n`;
+          uas += sendBlock(inv487) + `\n`;
+          uas += `  <recv request="ACK" optional="true"/>\n`;
+        }
+
+        // ── 302 REDIRECT ──
+        else if (s.type === '302') {
+          const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
+          const redirDst = ov.redirectUri || cfg.redirect;
+          const redir302 = [
+            `SIP/2.0 302 Moved Temporarily`,
+            `[last_Via:]`, `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`, `[last_CSeq:]`,
+            `Contact: <${redirDst}>`,
+            `Content-Length: 0`,
+          ];
+          const ack302 = [
+            `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] ACK`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- Step ${n}: Receive 302, send mandatory ACK (RFC 3261 §8.1.3.4) -->\n`;
+          uac += `  <recv response="302"/>\n`;
+          uac += sendBlock(ack302) + `\n`;
+
+          uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send 302 Moved Temporarily -->\n`;
+          if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
+          uas += sendBlock(redir302) + `\n`;
+          uas += `  <recv request="ACK" crlf="true"/>\n`;
+        }
+
+        // ── 4xx CLIENT ERROR ──
+        else if (s.type === '4xx') {
+          const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
+          const code4 = ov.code4xx || '486';
+          const rsn4 = ov.reason4xx || 'Busy Here';
+          const errAck4 = [
+            `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] ACK`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- Step ${n}: Receive ${code4}, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
+          uac += `  <recv response="${code4}"/>\n`;
+          uac += sendBlock(errAck4) + `\n`;
+
+          const h4xx = [
+            `SIP/2.0 ${code4} ${rsn4}`,
+            `[last_Via:]`, `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`, `[last_CSeq:]`,
+            `Content-Length: 0`,
+          ];
+          uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send ${code4} ${rsn4}, receive ACK -->\n`;
+          if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
+          uas += sendBlock(h4xx) + `\n`;
+          uas += `  <recv request="ACK" optional="true"/>\n`;
+        }
+
+        // ── 5xx SERVER ERROR ──
+        else if (s.type === '5xx') {
+          const hasPriorInvite = steps.slice(0, i).some(prev => prev.type === 'INVITE');
+          const code5 = ov.code5xx || '503';
+          const retry5 = ov.retryAfter || '30';
+          const errAck5 = [
+            `ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] ACK`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- Step ${n}: Receive ${code5}, send mandatory ACK (RFC 3261 §17.1.1.3) -->\n`;
+          uac += `  <recv response="${code5}"/>\n`;
+          uac += sendBlock(errAck5) + `\n`;
+
+          const h5xx = [
+            `SIP/2.0 ${code5} Service Unavailable`,
+            `[last_Via:]`, `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`, `[last_CSeq:]`,
+            `Retry-After: ${retry5}`,
+            `Content-Length: 0`,
+          ];
+          uas += `\n  <!-- Step ${n}: ${hasPriorInvite ? '' : 'Receive INVITE, '}send ${code5}, receive ACK -->\n`;
+          if (!hasPriorInvite) { uas += `  <recv request="INVITE" crlf="true"/>\n`; }
+          uas += sendBlock(h5xx) + `\n`;
+          uas += `  <recv request="ACK" optional="true"/>\n`;
+        }
+
+        // ── EGRESS 302 → RE-INVITE (compound two-phase UAS) ──
+        // UAC: plain basic call — it just sends INVITE and waits for 200
+        // UAS: Phase 1 answers with 302, Phase 2 handles the re-INVITE
+        else if (s.type === 'EGRESS302') {
+          // ── UAC side: standard INVITE → 200 → ACK → pause → BYE ──
+          const invHdrs = [
+            `INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: ${ovTo}`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] INVITE`,
+            `Contact: ${ovContact}`,
+            `Supported: 100rel, timer`,
+            `Max-Forwards: 70`,
+            ...(s.sdp ? [`Content-Type: application/sdp`, `Content-Length: [len]`] : [`Content-Length: 0`]),
+          ];
+          const ackHdrs = [
+            `ACK [next_url] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] ACK`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          const byeHdrs = [
+            `BYE [next_url] SIP/2.0`,
+            via,
+            `From: ${ovFrom}`,
+            `To: <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]`,
+            `Call-ID: [call_id]`,
+            `CSeq: [cseq] BYE`,
+            `Contact: ${ovContact}`,
+            `Max-Forwards: 70`,
+            `Content-Length: 0`,
+          ];
+          uac += `\n  <!-- UAC: Send INVITE — SBC will handle 302 redirect transparently -->\n`;
+          uac += sendBlock(s.sdp ? withSDP(invHdrs, cfg.codecs) : invHdrs, 500) + `\n`;
+          uac += `  <recv response="100" optional="true"/>\n`;
+          uac += `  <recv response="180" optional="true"/>\n`;
+          uac += `  <recv response="200" rrs="true" crlf="true"/>\n\n`;
+          uac += sendBlock(ackHdrs) + `\n`;
+          uac += `\n  <!-- Hold call then BYE -->\n`;
+          uac += `  <pause milliseconds="${cfg.duration}"/>\n\n`;
+          uac += sendBlock(byeHdrs, 500) + `\n`;
+          uac += `  <recv response="200" crlf="true"/>\n`;
+
+          // ── UAS side: two-phase scenario ──
+          // Phase 1: Receive first INVITE from SBC → send 100 → send 302 → recv ACK
+          const h100_p1 = [
+            `SIP/2.0 100 Trying`,
+            `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+            `[last_Call-ID:]`, `[last_CSeq:]`,
+            `Content-Length: 0`,
+          ];
+          const h302 = [
+            `SIP/2.0 302 Moved Temporarily`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `Contact: <${cfg.redirect}>`,
+            `Content-Length: 0`,
+          ];
+          // Phase 2: Receive re-INVITE from SBC → send 100 → 180 → 200 → recv ACK → BYE → 200
+          const h100_p2 = [
+            `SIP/2.0 100 Trying`,
+            `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+            `[last_Call-ID:]`, `[last_CSeq:]`,
+            `Content-Length: 0`,
+          ];
+          const h180_p2 = [
+            `SIP/2.0 180 Ringing`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `Contact: ${ovContact}`,
+            `Content-Length: 0`,
+          ];
+          const h200base_p2 = [
+            `SIP/2.0 200 OK`,
+            `[last_Via:]`,
+            `[last_From:]`,
+            `[last_To:];tag=[call_number]`,
+            `[last_Call-ID:]`,
+            `[last_CSeq:]`,
+            `Contact: ${ovContact}`,
+            ...(s.sdp ? [`Content-Type: application/sdp`, `Content-Length: [len]`] : [`Content-Length: 0`]),
+          ];
+          const bye200_p2 = [
+            `SIP/2.0 200 OK`,
+            `[last_Via:]`, `[last_From:]`, `[last_To:]`,
+            `[last_Call-ID:]`, `[last_CSeq:]`,
+            `Content-Length: 0`,
+          ];
+
+          uas += `\n  <!-- ═══ PHASE 1: Initial INVITE from SBC — respond with 302 ═══ -->\n`;
+          uas += `  <recv request="INVITE" crlf="true"/>\n`;
+          uas += sendBlock(h100_p1) + `\n`;
+          uas += sendBlock(h302) + `\n`;
+          uas += `  <!-- SBC sends ACK to close the 302 transaction -->\n`;
+          uas += `  <recv request="ACK" crlf="true"/>\n`;
+
+          uas += `\n  <!-- ═══ PHASE 2: SBC re-INVITEs to redirect target ═══ -->\n`;
+          uas += `  <recv request="INVITE" crlf="true"/>\n`;
+          uas += sendBlock(h100_p2) + `\n`;
+          uas += sendBlock(h180_p2) + `\n`;
+          uas += sendBlock(s.sdp ? withSDP(h200base_p2, cfg.codecs) : h200base_p2) + `\n`;
+          uas += `  <recv request="ACK" crlf="true"/>\n`;
+          uas += `\n  <!-- Wait for BYE from SBC -->\n`;
+          uas += `  <recv request="BYE"/>\n`;
+          uas += sendBlock(bye200_p2) + `\n`;
+        }
+        else if (s.type === 'MEDIA') {
+          const blk = `\n  <!-- Step ${n}: Play PCAP audio -->\n  <nop>\n    <action>\n      <exec play_pcap_audio="media.pcap"/>\n    </action>\n  </nop>\n`;
+          uac += blk; uas += blk;
+        }
+
+        // ── PAUSE ──
+        else if (s.type === 'PAUSE') {
+          const dur = ov.pauseMs || cfg.pauseDur || '2000';
+          uac += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
+          uas += `\n  <!-- Step ${n}: Pause ${dur}ms -->\n  <pause milliseconds="${dur}"/>\n`;
+        }
+      });
+
+      // SIPp statistics blocks — match proven working scenario format
+      const stats = `\n  <ResponseTimeRepartition value="10, 20, 30, 40, 50, 100, 150, 200"/>\n  <CallLengthRepartition value="10, 50, 100, 500, 1000, 5000, 10000"/>\n`;
+      uac += stats;
+      uas += stats;
+
+      uac += `\n</scenario>`;
+      uas += `\n</scenario>`;
+      return { uac, uas };
+    }
+
+    // ═══════════════════════════════════════════
+    //  QUICK HEADER CHIPS (Point 3)
+    // ═══════════════════════════════════════════
+    function addHeaderChip(header) {
+      const decoded = header.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+      const ta = document.getElementById('customHeaders');
+      const current = ta.value.trim();
+      const headerName = decoded.split(':')[0].trim();
+      if (current.split('\n').some(l => l.startsWith(headerName))) {
+        ta.value = current.split('\n').filter(l => !l.startsWith(headerName)).join('\n');
+      } else {
+        ta.value = current ? current + '\n' + decoded : decoded;
+      }
+      updateUI();
+      document.querySelectorAll('.hdr-chip').forEach(c => {
+        const raw = c.getAttribute('onclick').replace(/^addHeaderChip\('|'\)$/g, '');
+        const dec = raw.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        const name = dec.split(':')[0].trim();
+        c.classList.toggle('active', ta.value.split('\n').some(l => l.startsWith(name)));
+      });
+    }
+
+    // ═══════════════════════════════════════════
+    //  STEP INLINE EDITOR (Point 4)
+    // ═══════════════════════════════════════════
+    let openEditorIdx = null;
+
+    function getOv(i, key, def = '') { return steps[i]?.overrides?.[key] ?? def; }
+    function setOv(i, key, val) {
+      if (!steps[i].overrides) steps[i].overrides = {};
+      steps[i].overrides[key] = val;
+      updateUI();
+    }
+    function toggleEditor(i) {
+      openEditorIdx = (openEditorIdx === i) ? null : i;
+      renderCanvas();
+    }
+
+    function edRow(i, label, key, placeholder = '') {
+      const val = (getOv(i, key) || '').replace(/"/g, '&quot;');
+      return `<div class="ed-row">
     <span class="ed-lbl">${label}</span>
     <input class="ed-inp" value="${val}" placeholder="${placeholder}"
       oninput="setOv(${i},'${key}',this.value)">
   </div>`;
-}
+    }
 
-function buildEditor(i) {
-  const t = steps[i].type;
-  const rows = [];
-  if (t==='INVITE') {
-    rows.push(edRow(i,'From URI','from','sip:sipp@[local_ip]:[local_port]'));
-    rows.push(edRow(i,'To URI','to','sip:[service]@[remote_ip]'));
-    rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
-  }
-  if (t==='180'||t==='183') {
-    rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
-  }
-  if (t==='PRACK') {
-    rows.push(edRow(i,'RAck','rack','[last_RSeq] 1 INVITE'));
-  }
-  if (t==='200') {
-    rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
-  }
-  if (t==='ACK') {
-    rows.push(edRow(i,'Contact','contact','sip:sipp@[local_ip]:[local_port]'));
-  }
-  if (t==='BYE') {
-    rows.push(edRow(i,'Reason','reason','SIP;cause=200;text="Normal Clearing"'));
-  }
-  if (t==='PAUSE') {
-    rows.push(edRow(i,'Duration ms','pauseMs','2000'));
-  }
-  if (t==='302') {
-    rows.push(edRow(i,'Contact URI','redirectUri','sip:forward@dest.com:5060'));
-  }
-  if (t==='4xx') {
-    rows.push(edRow(i,'Response Code','code4xx','486'));
-    rows.push(edRow(i,'Reason Phrase','reason4xx','Busy Here'));
-  }
-  if (t==='5xx') {
-    rows.push(edRow(i,'Response Code','code5xx','503'));
-    rows.push(edRow(i,'Retry-After (s)','retryAfter','30'));
-  }
-  if (!rows.length) return '';
-  return `<div class="step-editor">
-    <div class="ed-title">✎ Step ${i+1} · ${t} — Header Overrides</div>
+    function buildEditor(i) {
+      const t = steps[i].type;
+      const rows = [];
+      if (t === 'INVITE') {
+        rows.push(edRow(i, 'From URI', 'from', 'sip:sipp@[local_ip]:[local_port]'));
+        rows.push(edRow(i, 'To URI', 'to', 'sip:[service]@[remote_ip]'));
+        rows.push(edRow(i, 'Contact', 'contact', 'sip:sipp@[local_ip]:[local_port]'));
+      }
+      if (t === '180' || t === '183') {
+        rows.push(edRow(i, 'Contact', 'contact', 'sip:sipp@[local_ip]:[local_port]'));
+      }
+      if (t === 'PRACK') {
+        rows.push(edRow(i, 'RAck', 'rack', '[$1] [$2] INVITE  (auto-captured from 180/183)'));
+      }
+      if (t === '200') {
+        rows.push(edRow(i, 'Contact', 'contact', 'sip:sipp@[local_ip]:[local_port]'));
+      }
+      if (t === 'ACK') {
+        rows.push(edRow(i, 'Contact', 'contact', 'sip:sipp@[local_ip]:[local_port]'));
+      }
+      if (t === 'BYE') {
+        rows.push(edRow(i, 'Reason', 'reason', 'SIP;cause=200;text="Normal Clearing"'));
+      }
+      if (t === 'PAUSE') {
+        rows.push(edRow(i, 'Duration ms', 'pauseMs', '2000'));
+      }
+      if (t === '302') {
+        rows.push(edRow(i, 'Contact URI', 'redirectUri', 'sip:forward@dest.com:5060'));
+      }
+      if (t === '4xx') {
+        rows.push(edRow(i, 'Response Code', 'code4xx', '486'));
+        rows.push(edRow(i, 'Reason Phrase', 'reason4xx', 'Busy Here'));
+      }
+      if (t === '5xx') {
+        rows.push(edRow(i, 'Response Code', 'code5xx', '503'));
+        rows.push(edRow(i, 'Retry-After (s)', 'retryAfter', '30'));
+      }
+      if (!rows.length) return '';
+      return `<div class="step-editor">
+    <div class="ed-title">✎ Step ${i + 1} · ${t} — Header Overrides</div>
     ${rows.join('')}
     <div class="ed-hint">Overrides apply to this step only. Leave blank to use global defaults.</div>
   </div>`;
-}
+    }
 
-function renderCanvas() {
-  const canvas = document.getElementById('canvas');
-  const sdpAble = new Set(['INVITE','180','183','200']);
+    function renderCanvas() {
+      const canvas = document.getElementById('canvas');
+      const sdpAble = new Set(['INVITE', '180', '183', '200']);
 
-  if (!steps.length) {
-    canvas.innerHTML = `<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">No steps yet.<br>Choose a Preset or<br>add steps manually.</div></div>`;
-    document.getElementById('stepCount').textContent = '0 steps';
-    document.getElementById('statusText').textContent = 'Ready · 0 steps';
-    return;
-  }
+      if (!steps.length) {
+        canvas.innerHTML = `<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">No steps yet.<br>Choose a Preset or<br>add steps manually.</div></div>`;
+        document.getElementById('stepCount').textContent = '0 steps';
+        document.getElementById('statusText').textContent = 'Ready · 0 steps';
+        return;
+      }
 
-  canvas.innerHTML = '';
-  document.getElementById('stepCount').textContent = steps.length + ' step' + (steps.length!==1?'s':'');
-  document.getElementById('statusText').textContent = `${steps.length} step${steps.length!==1?'s':''} · ${transport}`;
+      canvas.innerHTML = '';
+      document.getElementById('stepCount').textContent = steps.length + ' step' + (steps.length !== 1 ? 's' : '');
+      document.getElementById('statusText').textContent = `${steps.length} step${steps.length !== 1 ? 's' : ''} · ${transport}`;
 
-  steps.forEach((s, i) => {
-    const color = COLORS[s.type] || '#4d6690';
-    const canSDP = sdpAble.has(s.type);
+      steps.forEach((s, i) => {
+        const color = COLORS[s.type] || '#4d6690';
+        const canSDP = sdpAble.has(s.type);
 
-    const card = document.createElement('div');
-    card.className = 'step-card';
-    card.style.borderLeftColor = color;
+        const card = document.createElement('div');
+        card.className = 'step-card';
+        card.style.borderLeftColor = color;
 
-    const isOpen = openEditorIdx === i;
-    const hasEditor = ['INVITE','180','183','PRACK','200','ACK','BYE','PAUSE','302','4xx','5xx'].includes(s.type);
+        const isOpen = openEditorIdx === i;
+        const hasEditor = ['INVITE', '180', '183', 'PRACK', '200', 'ACK', 'BYE', 'PAUSE', '302', '4xx', '5xx'].includes(s.type);
 
-    const sdpBtn = canSDP
-      ? `<button class="sdp-pill ${s.sdp?'sdp-on':'sdp-off'}" onclick="event.stopPropagation();toggleSDP(${i})">SDP:${s.sdp?'ON':'OFF'}</button>`
-      : '';
+        const sdpBtn = canSDP
+          ? `<button class="sdp-pill ${s.sdp ? 'sdp-on' : 'sdp-off'}" onclick="event.stopPropagation();toggleSDP(${i})">SDP:${s.sdp ? 'ON' : 'OFF'}</button>`
+          : '';
 
-    const meta = s.type==='PAUSE'     ? (getOv(i,'pauseMs') || cfg_pauseDur())+'ms' :
-                 s.type==='MEDIA'     ? 'media.pcap' :
-                 s.type==='PRACK'     ? '[next_url]' :
-                 s.type==='BYE'       ? '[next_url]' :
-                 s.type==='ACK'       ? '[next_url]' :
-                 s.type==='EGRESS302' ? 'Phase1:302 · Phase2:full call' : '';
+        const meta = s.type === 'PAUSE' ? (getOv(i, 'pauseMs') || cfg_pauseDur()) + 'ms' :
+          s.type === 'MEDIA' ? 'media.pcap' :
+            s.type === 'PRACK' ? '[next_url]' :
+              s.type === 'BYE' ? '[next_url]' :
+                s.type === 'ACK' ? '[next_url]' :
+                  s.type === '302' ? (getOv(i, 'redirectUri') || '302 Redirect') :
+                    s.type === '4xx' ? ((getOv(i, 'code4xx') || '486') + ' ' + (getOv(i, 'reason4xx') || 'Busy Here')) :
+                      s.type === '5xx' ? ((getOv(i, 'code5xx') || '503') + ' Service') :
+                        s.type === 'REGISTER' ? 'Digest Auth' :
+                          s.type === 'EGRESS302' ? 'Phase1:302 · Phase2:full call' : '';
 
-    card.innerHTML = `
-      <span class="step-num">${i+1}</span>
+        card.innerHTML = `
+      <span class="step-num">${i + 1}</span>
       <span class="step-badge" style="background:${color}1a;color:${color}">${s.type}</span>
       <span class="step-meta">${meta}</span>
       <div class="step-actions">
         ${sdpBtn}
-        ${hasEditor ? `<button class="edit-btn${isOpen?' active':''}" onclick="event.stopPropagation();toggleEditor(${i})" title="Edit headers">✎</button>` : ''}
+        ${hasEditor ? `<button class="edit-btn${isOpen ? ' active' : ''}" onclick="event.stopPropagation();toggleEditor(${i})" title="Edit headers">✎</button>` : ''}
         <button class="del-btn" onclick="event.stopPropagation();removeStep(${i})">✕</button>
       </div>`;
 
-    makeDraggable(card, i);
-    canvas.appendChild(card);
+        makeDraggable(card, i);
+        canvas.appendChild(card);
 
-    // Inline editor panel
-    if (isOpen && hasEditor) {
-      const editorHtml = buildEditor(i);
-      if (editorHtml) {
-        const edDiv = document.createElement('div');
-        edDiv.innerHTML = editorHtml;
-        canvas.appendChild(edDiv.firstElementChild);
+        // Inline editor panel
+        if (isOpen && hasEditor) {
+          const editorHtml = buildEditor(i);
+          if (editorHtml) {
+            const edDiv = document.createElement('div');
+            edDiv.innerHTML = editorHtml;
+            canvas.appendChild(edDiv.firstElementChild);
+          }
+        }
+
+        if (i < steps.length - 1) {
+          const a = document.createElement('div');
+          a.className = 'step-arrow'; a.textContent = '↓';
+          canvas.appendChild(a);
+        }
+      });
+    }
+
+    function cfg_pauseDur() {
+      return document.getElementById('pauseDuration')?.value || '2000';
+    }
+
+    // ═══════════════════════════════════════════
+    //  SYNTAX HIGHLIGHTER (token-based, single pass)
+    // ═══════════════════════════════════════════
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function highlightSIPLine(line) {
+      const M_REQ = /^(\s*)(INVITE|REGISTER|BYE|ACK|CANCEL|PRACK|OPTIONS|NOTIFY|REFER|MESSAGE|UPDATE|SUBSCRIBE|PUBLISH)(\s+)(\S+)(\s+SIP\/2\.0)/;
+      const M_RESP = /^(\s*)(SIP\/2\.0\s+\d{3}\s+.*)/;
+      const M_HDR = /^(\s*)(Via|From|To|Call-ID|CSeq|Contact|Content-Type|Content-Length|Max-Forwards|RSeq|RAck|Require|Supported|Expires|P-Asserted-Identity|P-Called-Party-ID|History-Info|Route|Record-Route|Authorization|WWW-Authenticate|Allow|User-Agent|Refer-To|Min-SE|Session-Expires|Accept)(\s*:)(.*)/;
+      const M_SDP = /^(\s*)([vocstimuabkrze]=)(.*)/;
+      let m;
+      if ((m = line.match(M_REQ))) return `${esc(m[1])}<span class="x-sip">${esc(m[2])}</span>${esc(m[3])}<span class="x-val">${esc(m[4])}</span>${esc(m[5])}`;
+      if ((m = line.match(M_RESP))) return `${esc(m[1])}<span class="x-resp">${esc(m[2])}</span>`;
+      if ((m = line.match(M_HDR))) return `${esc(m[1])}<span class="x-hdr">${esc(m[2])}</span><span class="x-attr">${esc(m[3])}</span><span class="x-cdata">${esc(m[4])}</span>`;
+      if ((m = line.match(M_SDP))) return `${esc(m[1])}<span class="x-attr">${esc(m[2])}</span><span class="x-sdp">${esc(m[3])}</span>`;
+      return esc(line);
+    }
+
+    function highlightTag(raw) {
+      const isClose = raw.startsWith('</'), selfClose = raw.endsWith('/>');
+      let inner = raw.slice(isClose ? 2 : 1, selfClose ? raw.length - 2 : raw.length - 1);
+      const sp = inner.search(/\s/);
+      const [tagName, attrStr] = sp === -1 ? [inner, ''] : [inner.slice(0, sp), inner.slice(sp)];
+      const attrHL = attrStr
+        .replace(/([\w\-_]+)(\s*=\s*)("([^"]*)")/g, (_, n, eq, val) => `<span class="x-attr">${esc(n)}</span>${esc(eq)}<span class="x-val">${esc(val)}</span>`)
+        .replace(/([\w\-_]+)(\s*=\s*)('([^']*)')/g, (_, n, eq, val) => `<span class="x-attr">${esc(n)}</span>${esc(eq)}<span class="x-val">${esc(val)}</span>`);
+      return `<span class="x-tag">${isClose ? '&lt;/' : '&lt;'}<span style="color:#60a5fa">${esc(tagName)}</span>${attrHL}${selfClose ? '/&gt;' : '&gt;'}</span>`;
+    }
+
+    function syntaxHL(xml) {
+      const TOK = /(<!--[\s\S]*?-->)|(<!\[CDATA\[[\s\S]*?\]\]>)|(<\?[\s\S]*?\?>)|(<[^>]+>)|([^<]+)/g;
+      let out = ''; let m;
+      while ((m = TOK.exec(xml)) !== null) {
+        const [, comment, cdata, pi, tag, text] = m;
+        if (comment) { out += `<span class="x-com">${esc(comment)}</span>`; }
+        else if (cdata) {
+          const body = cdata.slice(9, cdata.length - 3);
+          const hl = body.split('\n').map(l => highlightSIPLine(l)).join('\n');
+          out += `<span class="x-tag">&lt;![CDATA[</span>${hl}<span class="x-tag">]]&gt;</span>`;
+        }
+        else if (pi) { out += `<span class="x-com">${esc(pi)}</span>`; }
+        else if (tag) { out += highlightTag(tag); }
+        else if (text) { out += esc(text); }
       }
+      return out;
     }
 
-    if (i < steps.length-1) {
-      const a = document.createElement('div');
-      a.className = 'step-arrow'; a.textContent = '↓';
-      canvas.appendChild(a);
+    // ═══════════════════════════════════════════
+    //  LINE NUMBERS
+    // ═══════════════════════════════════════════
+    function updateLineNums(id, xml) {
+      const count = (xml.match(/\n/g) || []).length + 1;
+      // Right-align: pad to same width so column stays fixed
+      const w = String(count).length;
+      const nums = Array.from({ length: count }, (_, i) => String(i + 1).padStart(w)).join('\n');
+      document.getElementById(id + '-lines').textContent = nums;
     }
-  });
-}
 
-function cfg_pauseDur() {
-  return document.getElementById('pauseDuration')?.value || '2000';
-}
-
-// ═══════════════════════════════════════════
-//  SYNTAX HIGHLIGHTER (token-based, single pass)
-// ═══════════════════════════════════════════
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function highlightSIPLine(line) {
-  const M_REQ  = /^(\s*)(INVITE|REGISTER|BYE|ACK|CANCEL|PRACK|OPTIONS|NOTIFY|REFER|MESSAGE|UPDATE|SUBSCRIBE|PUBLISH)(\s+)(\S+)(\s+SIP\/2\.0)/;
-  const M_RESP = /^(\s*)(SIP\/2\.0\s+\d{3}\s+.*)/;
-  const M_HDR  = /^(\s*)(Via|From|To|Call-ID|CSeq|Contact|Content-Type|Content-Length|Max-Forwards|RSeq|RAck|Require|Supported|Expires|P-Asserted-Identity|P-Called-Party-ID|History-Info|Route|Record-Route|Authorization|WWW-Authenticate|Allow|User-Agent|Refer-To|Min-SE|Session-Expires|Accept)(\s*:)(.*)/;
-  const M_SDP  = /^(\s*)([vocstimuabkrze]=)(.*)/;
-  let m;
-  if ((m=line.match(M_REQ)))  return `${esc(m[1])}<span class="x-sip">${esc(m[2])}</span>${esc(m[3])}<span class="x-val">${esc(m[4])}</span>${esc(m[5])}`;
-  if ((m=line.match(M_RESP))) return `${esc(m[1])}<span class="x-resp">${esc(m[2])}</span>`;
-  if ((m=line.match(M_HDR)))  return `${esc(m[1])}<span class="x-hdr">${esc(m[2])}</span><span class="x-attr">${esc(m[3])}</span><span class="x-cdata">${esc(m[4])}</span>`;
-  if ((m=line.match(M_SDP)))  return `${esc(m[1])}<span class="x-attr">${esc(m[2])}</span><span class="x-sdp">${esc(m[3])}</span>`;
-  return esc(line);
-}
-
-function highlightTag(raw) {
-  const isClose = raw.startsWith('</'), selfClose = raw.endsWith('/>');
-  let inner = raw.slice(isClose?2:1, selfClose?raw.length-2:raw.length-1);
-  const sp = inner.search(/\s/);
-  const [tagName, attrStr] = sp===-1 ? [inner,''] : [inner.slice(0,sp), inner.slice(sp)];
-  const attrHL = attrStr
-    .replace(/([\w\-_]+)(\s*=\s*)("([^"]*)")/g, (_,n,eq,val)=>`<span class="x-attr">${esc(n)}</span>${esc(eq)}<span class="x-val">${esc(val)}</span>`)
-    .replace(/([\w\-_]+)(\s*=\s*)('([^']*)')/g, (_,n,eq,val)=>`<span class="x-attr">${esc(n)}</span>${esc(eq)}<span class="x-val">${esc(val)}</span>`);
-  return `<span class="x-tag">${isClose?'&lt;/':'&lt;'}<span style="color:#60a5fa">${esc(tagName)}</span>${attrHL}${selfClose?'/&gt;':'&gt;'}</span>`;
-}
-
-function syntaxHL(xml) {
-  const TOK = /(<!--[\s\S]*?-->)|(<!\[CDATA\[[\s\S]*?\]\]>)|(<\?[\s\S]*?\?>)|(<[^>]+>)|([^<]+)/g;
-  let out = ''; let m;
-  while ((m=TOK.exec(xml))!==null) {
-    const [,comment,cdata,pi,tag,text] = m;
-    if (comment) { out += `<span class="x-com">${esc(comment)}</span>`; }
-    else if (cdata) {
-      const body = cdata.slice(9, cdata.length-3);
-      const hl = body.split('\n').map(l=>highlightSIPLine(l)).join('\n');
-      out += `<span class="x-tag">&lt;![CDATA[</span>${hl}<span class="x-tag">]]&gt;</span>`;
+    function syncScroll(id) {
+      const pane = document.getElementById(id + '-out');
+      const nums = document.getElementById(id + '-lines');
+      nums.scrollTop = pane.scrollTop;
     }
-    else if (pi)   { out += `<span class="x-com">${esc(pi)}</span>`; }
-    else if (tag)  { out += highlightTag(tag); }
-    else if (text) { out += esc(text); }
-  }
-  return out;
-}
 
-// ═══════════════════════════════════════════
-//  LINE NUMBERS
-// ═══════════════════════════════════════════
-function updateLineNums(id, xml) {
-  const count = (xml.match(/\n/g) || []).length + 1;
-  // Right-align: pad to same width so column stays fixed
-  const w = String(count).length;
-  const nums = Array.from({length: count}, (_, i) => String(i+1).padStart(w)).join('\n');
-  document.getElementById(id + '-lines').textContent = nums;
-}
+    // ═══════════════════════════════════════════
+    //  MAIN UPDATE
+    // ═══════════════════════════════════════════
+    function updateUI() {
+      const cfg = getCfg();
+      renderCanvas();
+      validate();
+      updateBadges();
+      const { uac, uas } = generateXML(cfg);
+      document.getElementById('uac-out').innerHTML = syntaxHL(uac);
+      document.getElementById('uas-out').innerHTML = syntaxHL(uas);
+      document.getElementById('uac-out').dataset.raw = uac;
+      document.getElementById('uas-out').dataset.raw = uas;
+      updateLineNums('uac', uac);
+      updateLineNums('uas', uas);
+    }
 
-function syncScroll(id) {
-  const pane = document.getElementById(id+'-out');
-  const nums = document.getElementById(id+'-lines');
-  nums.scrollTop = pane.scrollTop;
-}
+    // ═══════════════════════════════════════════
+    //  COPY TO CLIPBOARD
+    // ═══════════════════════════════════════════
+    function copyToClipboard(id) {
+      const raw = document.getElementById(id + '-out').dataset.raw || '';
+      if (!raw) return;
 
-// ═══════════════════════════════════════════
-//  MAIN UPDATE
-// ═══════════════════════════════════════════
-function updateUI() {
-  const cfg = getCfg();
-  renderCanvas();
-  validate();
-  updateBadges();
-  const {uac, uas} = generateXML(cfg);
-  document.getElementById('uac-out').innerHTML = syntaxHL(uac);
-  document.getElementById('uas-out').innerHTML = syntaxHL(uas);
-  document.getElementById('uac-out').dataset.raw = uac;
-  document.getElementById('uas-out').dataset.raw = uas;
-  updateLineNums('uac', uac);
-  updateLineNums('uas', uas);
-}
+      navigator.clipboard.writeText(raw).then(() => {
+        const btn = document.getElementById('copy-' + id);
+        btn.classList.add('copied');
+        btn.innerHTML = '<span class="copy-icon">✓</span> Copied!';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<span class="copy-icon">⎘</span> Copy';
+        }, 2000);
+      }).catch(() => {
+        // Fallback for browsers that block clipboard API on file:// protocol
+        const ta = document.createElement('textarea');
+        ta.value = raw;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        const btn = document.getElementById('copy-' + id);
+        btn.classList.add('copied');
+        btn.innerHTML = '<span class="copy-icon">✓</span> Copied!';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<span class="copy-icon">⎘</span> Copy';
+        }, 2000);
+      });
+    }
 
-// ═══════════════════════════════════════════
-//  COPY TO CLIPBOARD
-// ═══════════════════════════════════════════
-function copyToClipboard(id) {
-  const raw = document.getElementById(id + '-out').dataset.raw || '';
-  if (!raw) return;
+    // ═══════════════════════════════════════════
+    //  DOWNLOAD
+    // ═══════════════════════════════════════════
+    function downloadFile(id) {
+      const raw = document.getElementById(id + '-out').dataset.raw || '';
+      const a = document.createElement('a');
+      a.download = id + '_scenario.xml';
+      a.href = URL.createObjectURL(new Blob([raw], { type: 'text/xml' }));
+      a.click();
+    }
+    function downloadZip() { ['uac', 'uas'].forEach(id => downloadFile(id)); }
 
-  navigator.clipboard.writeText(raw).then(() => {
-    const btn = document.getElementById('copy-' + id);
-    btn.classList.add('copied');
-    btn.innerHTML = '<span class="copy-icon">✓</span> Copied!';
-    setTimeout(() => {
-      btn.classList.remove('copied');
-      btn.innerHTML = '<span class="copy-icon">⎘</span> Copy';
-    }, 2000);
-  }).catch(() => {
-    // Fallback for browsers that block clipboard API on file:// protocol
-    const ta = document.createElement('textarea');
-    ta.value = raw;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    const btn = document.getElementById('copy-' + id);
-    btn.classList.add('copied');
-    btn.innerHTML = '<span class="copy-icon">✓</span> Copied!';
-    setTimeout(() => {
-      btn.classList.remove('copied');
-      btn.innerHTML = '<span class="copy-icon">⎘</span> Copy';
-    }, 2000);
-  });
-}
-
-// ═══════════════════════════════════════════
-//  DOWNLOAD
-// ═══════════════════════════════════════════
-function downloadFile(id) {
-  const raw = document.getElementById(id+'-out').dataset.raw || '';
-  const a = document.createElement('a');
-  a.download = id+'_scenario.xml';
-  a.href = URL.createObjectURL(new Blob([raw],{type:'text/xml'}));
-  a.click();
-}
-function downloadZip() { ['uac','uas'].forEach(id=>downloadFile(id)); }
-
-// ═══════════════════════════════════════════
-//  CODEC PANEL INIT
-// ═══════════════════════════════════════════
-function renderCodecPanel() {
-  const list = document.getElementById('codecList');
-  list.innerHTML = '';
-  Object.entries(CODEC_DEFS).forEach(([key,c]) => {
-    const on = ['PCMA/8000','telephone-event'].includes(key);
-    const row = document.createElement('div');
-    row.className = 'codec-item';
-    row.innerHTML = `
-      <input type="checkbox" class="codec-cb" id="cb_${c.pt}" value="${key}" ${on?'checked':''} onchange="updateUI()">
+    // ═══════════════════════════════════════════
+    //  CODEC PANEL INIT
+    // ═══════════════════════════════════════════
+    function renderCodecPanel() {
+      const list = document.getElementById('codecList');
+      list.innerHTML = '';
+      Object.entries(CODEC_DEFS).forEach(([key, c]) => {
+        const on = ['PCMA/8000', 'telephone-event'].includes(key);
+        const row = document.createElement('div');
+        row.className = 'codec-item';
+        row.innerHTML = `
+      <input type="checkbox" class="codec-cb" id="cb_${c.pt}" value="${key}" ${on ? 'checked' : ''} onchange="updateUI()">
       <label for="cb_${c.pt}">${key}</label>
       <span class="codec-pt">PT ${c.pt}</span>`;
-    list.appendChild(row);
-  });
-}
+        list.appendChild(row);
+      });
+    }
 
-// ═══════════════════════════════════════════
-//  BOOT
-// ═══════════════════════════════════════════
-renderCodecPanel();
-updateUI();
-</script>
+    // ═══════════════════════════════════════════
+    //  BOOT
+    // ═══════════════════════════════════════════
+    renderCodecPanel();
+    updateUI();
+  </script>
 </body>
+
 </html>

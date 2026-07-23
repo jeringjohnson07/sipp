@@ -1234,7 +1234,7 @@
             <div class="preset-icon" style="background:rgba(245,158,11,0.15);color:var(--amber)">▶</div>
             <div>
               <div style="color:var(--text);font-weight:600">Early Media</div>
-              <div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 183 · PRACK · 200 · BYE</div>
+              <div style="color:var(--muted);font-size:8px;margin-top:2px">INVITE · 180 · PRACK · 200 · BYE</div>
             </div>
           </button>
 
@@ -1324,6 +1324,12 @@
             <div class="transport-opt active-udp" id="topt-UDP" onclick="setTransport('UDP')">UDP</div>
             <div class="transport-opt" id="topt-TCP" onclick="setTransport('TCP')">TCP</div>
             <div class="transport-opt" id="topt-TLS" onclick="setTransport('TLS')">TLS</div>
+          </div>
+
+          <div class="sec-hdr" style="margin-top:8px">100rel / PRACK</div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:6px">
+            <input type="checkbox" id="enablePrack" onchange="updateUI()" style="width:14px;height:14px;accent-color:var(--blue);margin:0;cursor:pointer;">
+            <label for="enablePrack" style="font-family:var(--mono);font-size:10px;color:var(--text2);cursor:pointer;flex:1">Enable 100rel on 180/183</label>
           </div>
 
           <div class="sec-hdr" style="margin-top:8px">Call Duration Before BYE</div>
@@ -1562,7 +1568,7 @@
     // ═══════════════════════════════════════════
     const PRESETS = {
       basic: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '180', sdp: false }, { type: '200', sdp: true }, { type: 'ACK', sdp: false }, { type: 'BYE', sdp: false }],
-      early: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '183', sdp: true }, { type: 'PRACK', sdp: false }, { type: '200', sdp: true }, { type: 'ACK', sdp: false }, { type: 'BYE', sdp: false }],
+      early: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '180', sdp: true }, { type: 'PRACK', sdp: false }, { type: '200', sdp: true }, { type: 'ACK', sdp: false }, { type: 'BYE', sdp: false }],
       teams: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '183', sdp: true }, { type: 'PRACK', sdp: false }, { type: '200', sdp: true }, { type: 'ACK', sdp: false }, { type: 'BYE', sdp: false }],
       register: [{ type: 'REGISTER', sdp: false }],
       redirect: [{ type: 'INVITE', sdp: true }, { type: '100', sdp: false }, { type: '302', sdp: false }],
@@ -1656,12 +1662,11 @@
     function validate() {
       const warns = [];
       const has = t => steps.some(s => s.type === t);
-      if (has('183') && !has('PRACK'))
-        warns.push('⚠  183 without PRACK — UAS sends Require:100rel but UAC never acknowledges');
-      if (has('180') && !has('PRACK'))
-        warns.push('⚠  180 without PRACK — Ribbon SBC sends Require:100rel in 180, UAC must PRACK');
-      if (has('PRACK') && !has('183') && !has('180'))
-        warns.push('⚠  PRACK without 180 or 183 — nothing to acknowledge');
+      const prackEnabled = document.getElementById('enablePrack')?.checked;
+      if (prackEnabled && !has('PRACK'))
+        warns.push('⚠  PRACK is enabled in Config, but no PRACK step is in the flow');
+      if (has('PRACK') && !prackEnabled)
+        warns.push('⚠  PRACK step is in flow, but PRACK is not enabled in Config');
       if (has('200') && !has('ACK'))
         warns.push('⚠  200 OK without ACK — add ACK step after 200');
       if (has('ACK') && !has('200'))
@@ -1687,6 +1692,7 @@
 
     function getCfg() {
       return {
+        enablePrack: document.getElementById('enablePrack')?.checked,
         transport,
         duration: document.getElementById('callDuration').value,
         redirect: document.getElementById('redirectUri').value,
@@ -1748,7 +1754,7 @@
     }
 
     function generateXML(cfg) {
-      const hasPrack = steps.some(s => s.type === 'PRACK');
+      const hasPrack = cfg.enablePrack;
       // Always use [transport] — SIPp resolves at runtime via -t flag
       const via = `Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]`;
       const contact = `sip:sipp@[local_ip]:[local_port]`;
